@@ -1,0 +1,12 @@
+[package]
+name = "cearaafis"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "=1.0.145", features = ["derive"] }
+serde_cbor = "0.11"
+image = { version = "0.24", features = ["png", "jpeg", "bmp"] }
+anyhow = "1.0"
+
+[dev-dependencies]
