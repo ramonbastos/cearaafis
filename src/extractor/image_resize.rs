@@ -29,8 +29,8 @@ impl ImageResizer {
         let height = target;
 
         // Clamp dimensions
-        let width = width.max(50).min(2000);
-        let height = height.max(50).min(2000);
+        let width = width.clamp(50, 2000);
+        let height = height.clamp(50, 2000);
 
         Self { width, height }
     }

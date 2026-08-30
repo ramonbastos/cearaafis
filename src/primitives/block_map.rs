@@ -12,19 +12,19 @@ pub struct BlockMap {
 impl BlockMap {
     pub fn new(width: i32, height: i32, max_block_size: i32) -> Self {
         let pixels = IntPoint::new(width, height);
-        let primary_blocks_x = Integers::round_up_div(width as i32, max_block_size as i32);
-        let primary_blocks_y = Integers::round_up_div(height as i32, max_block_size as i32);
+        let primary_blocks_x = Integers::round_up_div(width, max_block_size);
+        let primary_blocks_y = Integers::round_up_div(height, max_block_size);
         let primary_size = IntPoint::new(primary_blocks_x, primary_blocks_y);
         let mut primary = BlockGrid::new(&primary_size);
 
         // Fill primary Y coordinates
         for y in 0..=primary_blocks_y {
-            primary.y[y as usize] = y as i32 * height / primary_blocks_y;
+            primary.y[y as usize] = y * height / primary_blocks_y;
         }
 
         // Fill primary X coordinates
         for x in 0..=primary_blocks_x {
-            primary.x[x as usize] = x as i32 * width / primary_blocks_x;
+            primary.x[x as usize] = x * width / primary_blocks_x;
         }
 
         // Create secondary grid from primary corners

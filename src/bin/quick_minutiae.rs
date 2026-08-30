@@ -3,13 +3,13 @@ use cearaafis::*;
 fn load_png(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_png(&path, &opts).expect(&format!("Failed: {}", path))
+    FingerprintImage::from_png(&path, &opts).unwrap_or_else(|_| panic!("Failed: {}", path))
 }
 
 fn load_jpeg(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_jpeg(&path, &opts).expect(&format!("Failed: {}", path))
+    FingerprintImage::from_jpeg(&path, &opts).unwrap_or_else(|_| panic!("Failed: {}", path))
 }
 
 fn main() {
@@ -39,7 +39,7 @@ fn main() {
 
     // probe.jpeg vs matching.png (cross-format)
     let jpeg = load_jpeg("probe.jpeg");
-    let jpeg_tmpl = jpeg.to_template();
+    let _jpeg_tmpl = jpeg.to_template();
     let score3 = FingerprintMatcher::new(probe_tmpl).match_with_template(&matching_tmpl);
     println!("probe.jpeg vs matching.png: {:.1}", score3);
 }

@@ -185,7 +185,7 @@ mod tests {
             for x in 0..45 {
                 let v = result.get(x, y);
                 assert!(
-                    v >= -1.0 && v <= 1.0,
+                    (-1.0..=1.0).contains(&v),
                     "equalized value out of range at ({x},{y}): {v}"
                 );
             }

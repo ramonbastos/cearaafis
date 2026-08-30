@@ -4,13 +4,15 @@ use cearaafis::*;
 fn load_png(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_png(&path, &opts).expect(&format!("Failed to load PNG: {}", path))
+    FingerprintImage::from_png(&path, &opts)
+        .unwrap_or_else(|_| panic!("Failed to load PNG: {}", path))
 }
 
 fn load_jpeg(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_jpeg(&path, &opts).expect(&format!("Failed to load JPEG: {}", path))
+    FingerprintImage::from_jpeg(&path, &opts)
+        .unwrap_or_else(|_| panic!("Failed to load JPEG: {}", path))
 }
 
 fn score_probe_vs(name_probe: &str, name_other: &str, label: &str) {

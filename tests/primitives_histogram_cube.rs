@@ -59,14 +59,7 @@ mod tests {
         let _c = if c < 0 { 0 } else { c };
         assert_eq!(_c, 0);
         let c: usize = 0;
-        #[allow(unused_comparisons)]
-        let _c = if c < 0 {
-            0usize
-        } else if c >= cube.bins {
-            cube.bins - 1
-        } else {
-            c
-        };
+        let _c = c.clamp(0, cube.bins - 1);
         assert_eq!(_c, 0usize);
         assert!(cube.bins > 0);
         assert!(cube.bins > 0);

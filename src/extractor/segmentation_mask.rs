@@ -4,6 +4,7 @@
 ///   1. contrast = ClippedContrast(blocks, histogram)
 ///   2. mask = AbsoluteContrastMask(contrast) | RelativeContrastMask(contrast)
 ///   3. mask |= BlockErrorsVote(mask); invert; vote twice more; final vote
+///
 /// The final mask uses `true` for VALID (foreground) pixels — after the
 /// inversion in step 3, matching .NET semantics where mask[block] gates
 /// equalization/binarization.

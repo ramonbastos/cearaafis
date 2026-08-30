@@ -8,7 +8,6 @@ use crate::primitives::block_map::BlockMap;
 use crate::primitives::double_matrix::DoubleMatrix;
 use crate::primitives::doubles::Doubles;
 use crate::primitives::histogram_cube::HistogramCube;
-use crate::primitives::int_point::IntPoint;
 
 pub fn compute(blocks: &BlockMap, histogram: &HistogramCube) -> DoubleMatrix {
     let size = blocks.primary.blocks;

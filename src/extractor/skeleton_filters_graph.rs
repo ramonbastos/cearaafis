@@ -424,8 +424,4 @@ mod tests {
             "tail end should be removed"
         );
     }
-
-    fn long2_pts() -> Vec<IntPoint> {
-        (0..100).map(|i| IntPoint::new(100, i * 2)).collect()
-    }
 }

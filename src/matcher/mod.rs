@@ -7,7 +7,7 @@
 //! and pairing growth MUST use relative geometry (edge length + angle between
 //! minutiae pairs), never absolute pixel position.
 
-use crate::features::{Minutia, MinutiaType};
+use crate::features::Minutia;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
@@ -49,6 +49,7 @@ fn angle_diff(a1: f64, a2: f64) -> f64 {
 /// - Length stored as i16 (quantized by polar cache)
 /// - ReferenceAngle = angle from minutia direction to edge vector
 /// - NeighborAngle = angle from neighbor direction to opposite edge vector
+///
 /// All angles are rotation-invariant (relative to each minutia's own direction).
 #[derive(Debug, Clone, Copy)]
 pub struct EdgeShape {
@@ -85,7 +86,7 @@ impl EdgeShape {
             let tmp = -x;
             x = y;
             y = tmp;
-            quadrant = 1 + quadrant; // PI + PI/2
+            quadrant += 1; // PI + PI/2
         }
 
         // Leading zeros to find quantization shift (same as .NET Integers.LeadingZeros)
@@ -118,7 +119,7 @@ impl EdgeShape {
         let neighbor_angle = normalize_angle((-opp_angle - neighbor.angle).abs());
 
         EdgeShape {
-            length: quantized_length as i16,
+            length: quantized_length,
             reference_angle: ref_angle,
             neighbor_angle,
         }
@@ -210,7 +211,7 @@ impl EdgeHashes {
     /// Check if two edges match (same tolerance as .NET EdgeHashes.Matching).
     pub fn matching(probe: &EdgeShape, candidate: &EdgeShape) -> bool {
         let length_delta = (probe.length as f64) - (candidate.length as f64);
-        if length_delta >= -MAX_DISTANCE_ERROR && length_delta <= MAX_DISTANCE_ERROR {
+        if (-MAX_DISTANCE_ERROR..=MAX_DISTANCE_ERROR).contains(&length_delta) {
             let ref_diff = angle_diff(probe.reference_angle, candidate.reference_angle);
             if ref_diff <= MAX_ANGLE_ERROR || ref_diff >= COMPLEMENTARY_MAX_ANGLE_ERROR {
                 let neighbor_diff = angle_diff(probe.neighbor_angle, candidate.neighbor_angle);
@@ -354,7 +355,7 @@ impl MatcherEngine {
                 }
 
                 let edge_shape = &cedge.shape;
-                let l = cedge.neighbor;
+                let _l = cedge.neighbor;
 
                 // Hash-lookup probe edges that match this candidate edge
                 let matching_entries = probe_hashes.lookup(edge_shape);
@@ -400,12 +401,12 @@ impl MatcherEngine {
         // Phase 2: Enumerate short edges (shortEdges=true) — only if we haven't found a good score
         if best_score < 50.0 {
             for i in 0..cn {
-                if tried >= MAX_TRIED_ROOTS {
+                if tried >= MAX_TRIED_ROOTS || lookups >= MAX_ROOT_LOOKUPS {
                     break;
                 }
                 let cstar = &cand_neighbor_edges[i];
                 for cedge in cstar {
-                    if tried >= MAX_TRIED_ROOTS {
+                    if tried >= MAX_TRIED_ROOTS || lookups >= MAX_ROOT_LOOKUPS {
                         break;
                     }
 
@@ -416,7 +417,7 @@ impl MatcherEngine {
                     lookups += 1;
 
                     for entry in matching_entries {
-                        if tried >= MAX_TRIED_ROOTS {
+                        if tried >= MAX_TRIED_ROOTS || lookups >= MAX_ROOT_LOOKUPS {
                             break;
                         }
 
@@ -605,7 +606,7 @@ fn build_sorted_neighbor_edges(minutiae: &[Minutia]) -> Vec<Vec<NeighborEdge>> {
             .take(EDGE_TABLE_NEIGHBORS)
             .map(|(neighbor, _dist, shape)| NeighborEdge { neighbor, shape })
             .collect();
-        result[i].sort_by(|a, b| a.shape.length.cmp(&b.shape.length));
+        result[i].sort_by_key(|a| a.shape.length);
     }
     result
 }
@@ -617,8 +618,8 @@ fn build_sorted_neighbor_edges(minutiae: &[Minutia]) -> Vec<Vec<NeighborEdge>> {
 fn grow_pairing(
     _probe: &[Minutia],
     _cand: &[Minutia],
-    probe_edges: &Vec<Vec<NeighborEdge>>,
-    cand_edges: &Vec<Vec<NeighborEdge>>,
+    probe_edges: &[Vec<NeighborEdge>],
+    cand_edges: &[Vec<NeighborEdge>],
     pairs: &mut Vec<MinutiaPair>,
 ) {
     let mut used_probe: HashSet<usize> = pairs.iter().map(|p| p.probe).collect();

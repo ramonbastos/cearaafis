@@ -167,17 +167,15 @@ impl PartialEq for IntPoint {
 
 impl Eq for IntPoint {}
 
-impl PartialOrd for IntPoint {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.y
-            .partial_cmp(&other.y)
-            .map(|r| r.then(self.x.cmp(&other.x)))
+impl Ord for IntPoint {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.y.cmp(&other.y).then(self.x.cmp(&other.x))
     }
 }
 
-impl Ord for IntPoint {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+impl PartialOrd for IntPoint {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 

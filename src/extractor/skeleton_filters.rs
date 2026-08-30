@@ -1,4 +1,3 @@
-use crate::parameters::Parameters;
 /// SkeletonFilters: filters for skeleton cleaning (dot, pore, gap, tail, fragment, knot).
 /// Mirrors .NET SkeletonFilters.cs.
 use crate::primitives::bool_matrix::BooleanMatrix;
@@ -38,10 +37,13 @@ impl SkeletonFilter {
                         }
                         let nx = x as i32 + dx;
                         let ny = y as i32 + dy;
-                        if nx >= 0 && ny >= 0 && nx < w as i32 && ny < h as i32 {
-                            if skeleton.get(nx as usize, ny as usize) {
-                                n += 1;
-                            }
+                        if nx >= 0
+                            && ny >= 0
+                            && nx < w as i32
+                            && ny < h as i32
+                            && skeleton.get(nx as usize, ny as usize)
+                        {
+                            n += 1;
                         }
                     }
                 }

@@ -134,7 +134,7 @@ pub fn compute(input: &DoubleMatrix, mask: &BooleanMatrix, blocks: &BlockMap) ->
                 let neighbor_set = &neighbors[(y as usize) % neighbors.len()];
                 for neighbor in neighbor_set {
                     let radius = neighbor.offset.x().abs().max(neighbor.offset.y().abs());
-                    let yr = y as i32;
+                    let yr = y;
                     if yr - radius >= 0 && yr + radius < input.height() as i32 {
                         let x_start = radius.max(valid_x_start);
                         let x_end = (input.width() as i32 - radius).min(valid_x_end);

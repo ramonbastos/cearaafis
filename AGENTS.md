@@ -118,6 +118,62 @@ src/
 - **NEEDS IMPLEMENTATION** — uses DoubleAngle::atan + Parameters::ridge_direction_skip/sample
 - The .NET implementation handles edge cases with shift when ridge is too short
 
+## Rust Lint & Code Quality
+
+### Regra Obrigatória
+**Sempre rode o lint após corrigir qualquer erro ou alterar qualquer `.rs`.** Corrija TODOS os warnings antes de considerar a tarefa concluída. O CI bloqueia merge com warnings (ver `.github/workflows/ci.yml`).
+
+### Comandos (rodar nesta ordem, da raiz do crate)
+```bash
+cargo fmt --check               # formatação — rodar `cargo fmt` se falhar
+cargo clippy --all-targets -- -D warnings   # lint rigoroso (bloqueia warnings)
+cargo check --all-targets       # compilação de todos os alvos
+cargo test                      # testes
+```
+
+### Níveis de Clippy (progressivo)
+| Nível | Configuração | Quando usar |
+|-------|--------------|-------------|
+| Básico | `clippy::all = "warn"` | Começo do projeto |
+| Intermediário | `clippy::all = "warn"` + `clippy::pedantic = "warn"` | Projeto estável |
+| Rigoroso (CI) | `clippy::all = "deny"` + `clippy::pedantic = "deny"` + `clippy::nursery = "warn"` | Produção, merge bloqueado |
+
+### Configuração recomendada em `Cargo.toml`
+```toml
+[workspace.lints.clippy]
+correctness = "deny"            # bugs reais — sempre deny
+all = "warn"                    # regras padrão
+pedantic = "warn"               # regras rigorosas (avaliar caso a caso)
+nursery = "warn"                # regras experimentais
+
+# Exceções específicas do cearaafis (tradução fiel do .NET exige):
+too_many_arguments = "allow"    # funções do extrator têm muitos parâmetros (fiel ao .cs)
+module_name_repetitions = "allow"  # muitos tipos com prefixo semelhante ao .NET
+```
+> **Nota:** os `#[warn]` de `unused`/`dead_code` que existem hoje no port (ex.: variáveis `_l`, `_jpeg_tmpl`) DEVEM ser limpos gradativamente — não silenciar com `#[allow]` cego. O objetivo é `clippy -D warnings` limpo.
+
+### Ferramentas complementares
+| Ferramenta | Comando | Propósito |
+|------------|---------|-----------|
+| clippy | `cargo clippy --all-targets -- -D warnings` | ~500 regras de estilo/bugs |
+| rustfmt | `cargo fmt --check` | formatação canônica |
+| cargo-audit | `cargo audit` | CVEs em dependências |
+| cargo-udeps | `cargo udeps` | dependências não usadas |
+
+### Pre-commit hook (opcional, local)
+```bash
+# .git/hooks/pre-commit
+cargo clippy --all-targets -- -D warnings || exit 1
+cargo fmt --check || exit 1
+```
+
+### Fluxo pós-correção (mandatório)
+```
+corrigir bug → cargo fmt → cargo clippy --all-targets -- -D warnings
+             → corrigir warnings → cargo check --all-targets → cargo test
+```
+**Regra:** não avance para a próxima tarefa enquanto `clippy`/`fmt`/`check` acusarem qualquer warning/erro.
+
 ## Testing Strategy
 
 ### Unit Tests (per-component)
@@ -235,6 +291,11 @@ parameters → primitives → features → templates
 | **BlockGrid block_at usa indices diretos** | block_at(IntPoint at) → block(at.X, at.Y), NAO (at.X+1, at.Y+1) |
 | **Matching NUNCA usa posição absoluta como root pair** | Duas capturas do mesmo dedo têm translação/rotação arbitrária entre si. Root-pair discovery e pairing growth DEVEM usar geometria relativa (edge length + angle normalizado pela direção própria de cada minutia), nunca distância euclidiana absoluta entre posições x,y. Bug histórico: tolerância de posição absoluta (10-30px) nunca formava pares corretos entre capturas reais, causando score sempre 0.0 ou invertido. |
 | **Score é proporcional à contagem de minutiae (.NET formula)** | Templates sintéticos pequenos (2-4 minutiae) nunca atingem score ≥50; a fórmula .NET Scoring.Compute() foi calibrada para templates reais (20-80+ minutiae). Testes unitários com poucos minutiae devem usar limiares como `score > 5.0` ou `score > 0.0`, não `>= 50.0`. |
+| **Clippy `-D warnings` é bloqueante** | Regra obrigatória: rodar `cargo fmt` → `cargo clippy --all-targets -- -D warnings` → `cargo check --all-targets` → `cargo test` após QUALQUER alteração em `.rs`. O CI (`.github/workflows/ci.yml`) bloqueia merge com warnings — 0 warnings é o estado esperado, não o ideal. |
+| **`cargo clippy --fix` + `cargo fmt` automatiza a maioria** | Corrige mecanicamente parens, colapso de `if`, `&Vec`→`&[_]`, etc. Depois resolva manualmente os semânticos: dead code, `partial_cmp` não-canônico (potencial bug de ordering), glob re-exports ambíguos (`.cs` com dois `compute`), `lookups` nunca lido (limite `MAX_ROOT_LOOKUPS` ignorado — bug real). |
+| **`partial_cmp` não-canônico = bug latente de ordering** | `impl PartialOrd` com `y.then(x)` + `impl Ord` chamando `partial_cmp().unwrap()` esconde divergência entre as duas ordenações. Correto: `Ord::cmp` é a fonte de verdade (`y.cmp(&x).then(x.cmp)`), `PartialOrd` delega em `Some(self.cmp(other))`. |
+| **Glob re-exports ambíguos precisam de alias explícito** | `pub use mod_a::*` + `pub use mod_b::*` colidem quando ambos exportam `compute`. Solução: re-exportar com alias — `pub use absolute_contrast_mask::compute as absolute_contrast_compute;` (sem quebrar call-sites, o `as` preserva o nome original no módulo). |
+| **Contadores de limite precisam de testes de limite** | `lookups += 1` nunca lido → `MAX_ROOT_LOOKUPS` (1633) não era respeitado no Phase 2. Adicionar guardas `|| lookups >= MAX_ROOT_LOOKUPS` nos loops e verificar que o contador é realmente consumido. |
 
 ### 1. Sorting Stability
 - .NET LINQ orderby is guaranteed stable

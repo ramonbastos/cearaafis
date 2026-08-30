@@ -17,7 +17,7 @@ impl ConsistentSkeleton {
         let height = size.y();
 
         // Collect minutiae positions
-        let minutiae_pts: Vec<IntPoint> = minutiae.iter().map(|m| m.position.clone()).collect();
+        let minutiae_pts: Vec<IntPoint> = minutiae.iter().map(|m| m.position).collect();
 
         // Build ridges (just use simple indices for now)
         let ridges_out: Vec<ConsistentSkeletonRidge> = ridges

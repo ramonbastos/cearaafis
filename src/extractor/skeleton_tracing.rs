@@ -64,10 +64,13 @@ impl SkeletonTracer {
                         }
                         let nx = x as i32 + dx;
                         let ny = y as i32 + dy;
-                        if nx >= 0 && ny >= 0 && nx < w as i32 && ny < h as i32 {
-                            if self.skeleton.get(nx as usize, ny as usize) {
-                                n += 1;
-                            }
+                        if nx >= 0
+                            && ny >= 0
+                            && nx < w as i32
+                            && ny < h as i32
+                            && self.skeleton.get(nx as usize, ny as usize)
+                        {
+                            n += 1;
                         }
                     }
                 }
@@ -113,10 +116,13 @@ impl SkeletonTracer {
                         }
                         let nx = x as i32 + dx;
                         let ny = y as i32 + dy;
-                        if nx >= 0 && ny >= 0 && nx < w as i32 && ny < h as i32 {
-                            if skeleton.get(nx as usize, ny as usize) {
-                                n += 1;
-                            }
+                        if nx >= 0
+                            && ny >= 0
+                            && nx < w as i32
+                            && ny < h as i32
+                            && skeleton.get(nx as usize, ny as usize)
+                        {
+                            n += 1;
                         }
                     }
                 }

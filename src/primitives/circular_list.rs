@@ -21,7 +21,7 @@ impl<T: Clone + PartialEq + Default> CircularList<T> {
     }
 
     pub fn get(&self, index: usize) -> &T {
-        &self.inner.get(index)
+        self.inner.get(index)
     }
 
     pub fn set(&mut self, index: usize, value: T) {
@@ -29,12 +29,7 @@ impl<T: Clone + PartialEq + Default> CircularList<T> {
     }
 
     pub fn index_of(&self, item: &T) -> Option<usize> {
-        for i in 0..self.inner.len {
-            if *self.inner.get(i) == *item {
-                return Some(i);
-            }
-        }
-        None
+        (0..self.inner.len).find(|&i| *self.inner.get(i) == *item)
     }
 
     pub fn insert(&mut self, index: usize, item: T) {
@@ -84,7 +79,7 @@ impl<T: Clone + PartialEq + Default> CircularList<T> {
             return None;
         }
         let index = 0;
-        let val = std::mem::replace(&mut self.inner.array[index], T::default());
+        let val = std::mem::take(&mut self.inner.array[index]);
         self.inner.remove(index, 1);
         Some(val)
     }
@@ -95,7 +90,7 @@ impl<T: Clone + PartialEq + Default> CircularList<T> {
             return None;
         }
         let index = self.inner.len - 1;
-        let val = std::mem::replace(&mut self.inner.array[index], T::default());
+        let val = std::mem::take(&mut self.inner.array[index]);
         self.inner.remove(index, 1);
         Some(val)
     }

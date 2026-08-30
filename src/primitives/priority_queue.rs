@@ -1,5 +1,4 @@
 /// PriorityQueue<T>: heap-based priority queue — mirrors .NET PriorityQueue.cs.
-
 pub struct PriorityQueue<T>
 where
     T: Default + Ord,
@@ -53,10 +52,10 @@ impl<T: Default + Ord> PriorityQueue<T> {
 
     pub fn pop(&mut self) -> T {
         assert!(self.size > 0, "PriorityQueue is empty");
-        let result = std::mem::replace(&mut self.heap[0], Default::default());
+        let result = std::mem::take(&mut self.heap[0]);
         self.size -= 1;
         if self.size > 0 {
-            self.heap[0] = std::mem::replace(&mut self.heap[self.size], Default::default());
+            self.heap[0] = std::mem::take(&mut self.heap[self.size]);
             self.heap.truncate(self.size);
             self.bubble_down();
         }

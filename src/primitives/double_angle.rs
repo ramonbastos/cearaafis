@@ -115,7 +115,7 @@ impl DoubleAngle {
     }
 
     pub fn normalized(angle: f64) -> bool {
-        angle >= 0.0 && angle < Self::PI2
+        (0.0..Self::PI2).contains(&angle)
     }
 }
 

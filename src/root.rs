@@ -24,16 +24,10 @@ use image;
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// Options for loading fingerprint images.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FingerprintImageOptions {
     /// Target DPI (20 ≤ dpi ≤ 20000).  0 means "unknown".
     pub dpi: u32,
-}
-
-impl Default for FingerprintImageOptions {
-    fn default() -> Self {
-        Self { dpi: 0 }
-    }
 }
 
 impl FingerprintImageOptions {
@@ -196,16 +190,13 @@ impl FingerprintTemplate {
         feature_template: &FeatureTemplate,
         _double_data: &DoubleMatrix,
     ) -> Self {
-        let size = ShortPoint::new(
-            feature_template.size.x as i16,
-            feature_template.size.y as i16,
-        );
+        let size = ShortPoint::new(feature_template.size.x, feature_template.size.y);
         let minutiae = feature_template
             .minutiae
             .iter()
             .map(|m| {
                 Minutia::new(
-                    IntPoint::new(m.position.x() as i32, m.position.y() as i32),
+                    IntPoint::new(m.position.x(), m.position.y()),
                     0.0,
                     MinutiaType::Ending,
                 )

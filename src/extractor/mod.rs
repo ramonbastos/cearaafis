@@ -29,20 +29,18 @@ pub mod skeleton_tracing;
 pub mod skeleton_tracing_graph;
 pub mod vote_filter;
 
-pub use absolute_contrast_mask::*;
+pub use absolute_contrast_mask::compute as absolute_contrast_compute;
 pub use binarized_image::*;
 pub use binary_thinning::*;
-pub use block_orientations::*;
-pub use clipped_contrast::*;
 pub use image_equalize::*;
 pub use image_resize::*;
 pub use local_histograms::*;
 pub use minutia_collector::*;
 pub use minutia_collector_graph::*;
 pub use oriented_smoothing::*;
-pub use pixelwise_orientations::*;
-pub use relative_contrast_mask::*;
-pub use segmentation_mask::*;
+pub use relative_contrast_mask::compute as relative_contrast_compute;
+pub use segmentation_mask::compute as segmentation_compute;
+pub use segmentation_mask::{inner as segmentation_inner, pixelwise as segmentation_pixelwise};
 pub use skeleton_filters::*;
 pub use skeleton_filters_graph::*;
 pub use skeleton_graph::*;
@@ -222,32 +220,6 @@ impl FeatureExtractor {
         resizer.resize(image)
     }
 
-    fn stage_skeleton(binarized: BooleanMatrix) -> BooleanMatrix {
-        let tracer = SkeletonTracer::new(&binarized);
-        tracer.skeleton().clone()
-    }
-
-    fn stage_skeleton_filters(skeleton: BooleanMatrix) -> BooleanMatrix {
-        let filter = SkeletonFilter::new(&skeleton);
-        filter.skeleton().clone()
-    }
-
-    fn stage_minutia_collection(
-        skeleton: &BooleanMatrix,
-        image: &DoubleMatrix,
-        pixel_mask: &BooleanMatrix,
-        inverted: &BooleanMatrix,
-    ) -> (Vec<Minutia>, Vec<Vec<NeighborEdge>>) {
-        let collector = MinutiaCollector::from_skeleton(skeleton);
-        let mut minutiae = collector.minutiae().clone();
-        let edges = Self::build_edges(skeleton);
-        if minutiae.is_empty() {
-            minutiae = Self::synthesize_minutiae(image);
-        }
-        let _ = (pixel_mask, inverted); // used by graph-based collection later
-        (minutiae, edges)
-    }
-
     fn build_edges(skeleton: &BooleanMatrix) -> Vec<Vec<NeighborEdge>> {
         let w = skeleton.width();
         let h = skeleton.height();
@@ -277,13 +249,13 @@ impl FeatureExtractor {
                             if nx >= 0 && ny >= 0 {
                                 let nx_usize = nx as usize;
                                 let ny_usize = ny as usize;
-                                if nx_usize < w && ny_usize < h {
-                                    if skeleton.get(nx_usize, ny_usize)
-                                        && !visited[ny_usize * w + nx_usize]
-                                    {
-                                        visited[ny_usize * w + nx_usize] = true;
-                                        queue.push((nx, ny));
-                                    }
+                                if nx_usize < w
+                                    && ny_usize < h
+                                    && skeleton.get(nx_usize, ny_usize)
+                                    && !visited[ny_usize * w + nx_usize]
+                                {
+                                    visited[ny_usize * w + nx_usize] = true;
+                                    queue.push((nx, ny));
                                 }
                             }
                         }
@@ -335,7 +307,7 @@ impl FeatureExtractor {
             }
         }
 
-        candidates.sort_by(|a, b| b.2.cmp(&a.2));
+        candidates.sort_by_key(|b| std::cmp::Reverse(b.2));
 
         candidates
             .into_iter()
@@ -409,12 +381,12 @@ mod tests {
 
     #[test]
     fn test_synthesize_minutiae() {
-        let img = make_test_image(100, 100, |x, y| {
+        let img = make_test_image(100, 100, |x, _y| {
             let dx = (x as f64 - 50.0) / 15.0;
-            ((-dx * dx * 0.5).exp() * 255.0) as f64
+            (-dx * dx * 0.5).exp() * 255.0
         });
         let mins = FeatureExtractor::synthesize_minutiae(&img);
-        assert!(mins.len() > 0);
+        assert!(!mins.is_empty());
         assert!(mins.len() <= Parameters::MAX_MINUTIAE);
     }
 
@@ -431,7 +403,7 @@ mod tests {
         let extractor = FeatureExtractor::new(&img, 500);
         let (size, mins, _edges) = extractor.extract(&img);
         assert!(size.x > 0 && size.y > 0);
-        assert!(mins.len() > 0, "should find minutiae in ridge pattern");
+        assert!(!mins.is_empty(), "should find minutiae in ridge pattern");
     }
 
     #[test]
@@ -450,6 +422,6 @@ mod tests {
             mins.len(),
             edges.len()
         );
-        assert!(mins.len() > 0 || edges.len() > 0);
+        assert!(!mins.is_empty() || !edges.is_empty());
     }
 }

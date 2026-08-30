@@ -41,9 +41,9 @@ impl<T: Clone + Default> CircularArray<T> {
 
     fn enlarge(&mut self) {
         let mut enlarged = vec![T::default(); 2 * self.array.len()];
-        for i in 0..self.len {
+        for (i, item) in enlarged.iter_mut().enumerate().take(self.len) {
             let loc = self.location(i);
-            enlarged[i] = std::mem::replace(&mut self.array[loc], T::default());
+            *item = std::mem::take(&mut self.array[loc]);
         }
         self.array = enlarged;
         self.head = 0;
@@ -53,7 +53,7 @@ impl<T: Clone + Default> CircularArray<T> {
         for i in 0..length {
             let from_loc = self.location(from + i);
             let to_loc = self.location(to + i);
-            self.array[to_loc] = std::mem::replace(&mut self.array[from_loc], T::default());
+            self.array[to_loc] = std::mem::take(&mut self.array[from_loc]);
         }
     }
 

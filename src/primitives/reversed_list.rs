@@ -26,7 +26,7 @@ impl<T: Clone + PartialEq + Default> ReversedList<T> {
     pub fn get(&self, index: usize) -> &T {
         let n = self.inner.len();
         assert!(index < n, "index out of bounds");
-        &self.inner.get(n - 1 - index)
+        self.inner.get(n - 1 - index)
     }
 
     /// Set at reversed index.
@@ -39,12 +39,7 @@ impl<T: Clone + PartialEq + Default> ReversedList<T> {
     /// Search for item in reversed order.
     pub fn index_of(&self, item: &T) -> Option<usize> {
         let n = self.inner.len();
-        for i in 0..n {
-            if *self.inner.get(n - 1 - i) == *item {
-                return Some(i);
-            }
-        }
-        None
+        (0..n).find(|&i| *self.inner.get(n - 1 - i) == *item)
     }
 
     /// Insert at reversed position: insert(index, item) = inner.Insert(Count - index, item).

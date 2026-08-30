@@ -109,7 +109,7 @@ impl PersistentTemplate {
             }
 
             let direction = self.directions[i];
-            if direction < 0.0 || direction > 2.0 * std::f32::consts::PI {
+            if !(0.0..=2.0 * std::f32::consts::PI).contains(&direction) {
                 return Err(format!("Denormalized direction at index {}", i));
             }
 
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn test_encode_decode_roundtrip() {
-        let mut minutiae = vec![
+        let minutiae = vec![
             Minutia::new(IntPoint::new(50, 50), 0.5, MinutiaType::Ending),
             Minutia::new(IntPoint::new(60, 60), 1.2, MinutiaType::Bifurcation),
             Minutia::new(IntPoint::new(70, 70), 2.1, MinutiaType::Ending),
@@ -160,7 +160,7 @@ mod tests {
 
     #[test]
     fn test_encode_types_b_and_e() {
-        let mut minutiae = vec![
+        let minutiae = vec![
             Minutia::new(IntPoint::new(10, 10), 0.0, MinutiaType::Ending),
             Minutia::new(IntPoint::new(20, 20), 0.0, MinutiaType::Bifurcation),
         ];

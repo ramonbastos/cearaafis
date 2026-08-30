@@ -16,7 +16,7 @@ mod tests {
     fn test_int_point_add() {
         let a = IntPoint::new(10, 20);
         let b = IntPoint::new(5, 3);
-        let c = a.clone() + b.clone();
+        let c = a + b;
         assert_eq!(c.x, 15);
         assert_eq!(c.y, 23);
     }

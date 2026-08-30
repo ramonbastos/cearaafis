@@ -72,12 +72,12 @@ fn match_probe_against_all() {
 
     eprintln!("\n=== MATCH RESULTS (probe.png vs all candidates) ===\n");
     eprintln!(
-        "{:<pad$} | {:>4} | {:>8} | {:>6} | {}",
-        "Candidate", "Min", "Score", "Pct%", "Status"
+        "{:<pad$} | {:>4} | {:>8} | {:>6} | Status",
+        "Candidate", "Min", "Score", "Pct%"
     );
     eprintln!(
-        "{:<pad$}+{:<4}+{:<8}+{:<6}+{}",
-        "---", "----", "-------", "------", "------"
+        "{:<pad$}+{:<4}+{:<8}+{:<6}+------",
+        "---", "----", "-------", "------"
     );
 
     for (id, score) in &results {

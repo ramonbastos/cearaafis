@@ -85,7 +85,7 @@ fn minutia_centers(
 ) -> HashMap<IntPoint, usize> {
     let mut centers: HashMap<IntPoint, usize> = HashMap::new();
     let mut keys: Vec<IntPoint> = linking.keys().cloned().collect();
-    keys.sort_by(|a, b| (a.y(), a.x()).cmp(&(b.y(), b.x())));
+    keys.sort_by_key(|a| (a.y(), a.x()));
 
     let mut cluster_centers: HashMap<IntPoint, usize> = HashMap::new();
     for current_pos in keys {
@@ -113,7 +113,7 @@ fn trace_ridges(
 ) {
     let mut leads: HashMap<IntPoint, ()> = HashMap::new();
     let mut starts: Vec<IntPoint> = minutiae_points.keys().cloned().collect();
-    starts.sort_by(|a, b| (a.y(), a.x()).cmp(&(b.y(), b.x())));
+    starts.sort_by_key(|a| (a.y(), a.x()));
 
     for minutia_point in starts {
         for start_relative in IntPoint::CORNER_NEIGHBORS {

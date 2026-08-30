@@ -36,14 +36,17 @@ impl MinutiaCollector {
                         }
                         let nx = x as i32 + dx;
                         let ny = y as i32 + dy;
-                        if nx >= 0 && ny >= 0 && nx < w as i32 && ny < h as i32 {
-                            if skeleton.get(nx as usize, ny as usize) {
-                                neighbor_count += 1;
-                                sum_x += (nx - x as i32) as f64;
-                                sum_y += (ny - y as i32) as f64;
-                                if first_neighbor.is_none() {
-                                    first_neighbor = Some(IntPoint::new(nx, ny));
-                                }
+                        if nx >= 0
+                            && ny >= 0
+                            && nx < w as i32
+                            && ny < h as i32
+                            && skeleton.get(nx as usize, ny as usize)
+                        {
+                            neighbor_count += 1;
+                            sum_x += (nx - x as i32) as f64;
+                            sum_y += (ny - y as i32) as f64;
+                            if first_neighbor.is_none() {
+                                first_neighbor = Some(IntPoint::new(nx, ny));
                             }
                         }
                     }

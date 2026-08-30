@@ -28,8 +28,7 @@ impl Skeleton {
     }
 
     pub fn shadow(&self) -> BooleanMatrix {
-        let shadow = BooleanMatrix::new(self.size.x() as usize, self.size.y() as usize);
-        shadow
+        BooleanMatrix::new(self.size.x() as usize, self.size.y() as usize)
     }
 }
 

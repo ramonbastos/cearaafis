@@ -42,7 +42,7 @@ impl SkeletonRidge {
         if last >= n as i32 {
             let shift = last - n as i32 + 1;
             last -= shift;
-            let mut shifted_first = first - shift;
+            let shifted_first = first - shift;
             if shifted_first < 0 {
                 let shift2 = 0 - shifted_first;
                 first += shift2;

@@ -15,21 +15,24 @@ use cearaafis::*;
 fn load_png(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_png(&path, &opts).expect(&format!("Failed to load PNG: {}", path))
+    FingerprintImage::from_png(&path, &opts)
+        .unwrap_or_else(|_| panic!("Failed to load PNG: {}", path))
 }
 
 /// Load a fingerprint image from test_resources/ using JPEG format.
 fn load_jpeg(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_jpeg(&path, &opts).expect(&format!("Failed to load JPEG: {}", path))
+    FingerprintImage::from_jpeg(&path, &opts)
+        .unwrap_or_else(|_| panic!("Failed to load JPEG: {}", path))
 }
 
 /// Load a fingerprint image from test_resources/ using BMP format.
 fn load_bmp(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_bmp(&path, &opts).expect(&format!("Failed to load BMP: {}", path))
+    FingerprintImage::from_bmp(&path, &opts)
+        .unwrap_or_else(|_| panic!("Failed to load BMP: {}", path))
 }
 
 /// Load grayscale raw bytes from test_resources/.
@@ -46,7 +49,7 @@ fn load_bytes(name: &str) -> FingerprintImage {
     let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("Failed to read {}: {:?}", path, e));
     let opts = FingerprintImageOptions::default();
     FingerprintImage::from_bytes(&bytes, &opts)
-        .expect(&format!("Failed to load bytes from: {}", path))
+        .unwrap_or_else(|_| panic!("Failed to load bytes from: {}", path))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

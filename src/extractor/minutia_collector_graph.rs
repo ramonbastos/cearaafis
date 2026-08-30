@@ -93,7 +93,7 @@ pub fn top_filter(minutiae: &mut Vec<Minutia>) {
     if minutiae.len() <= Parameters::MAX_MINUTIAE {
         return;
     }
-    let sort_by = Parameters::SORT_BY_NEIGHBOR;
+    let _sort_by = Parameters::SORT_BY_NEIGHBOR;
     let mut ranked: Vec<(i64, usize)> = minutiae
         .iter()
         .enumerate()
@@ -117,7 +117,7 @@ pub fn top_filter(minutiae: &mut Vec<Minutia>) {
         })
         .collect();
     // Descending radius (isolated minutiae first), stable like .NET LINQ.
-    ranked.sort_by(|a, b| b.0.cmp(&a.0));
+    ranked.sort_by_key(|b| std::cmp::Reverse(b.0));
     let mut kept: Vec<Minutia> = ranked
         .into_iter()
         .take(Parameters::MAX_MINUTIAE)
