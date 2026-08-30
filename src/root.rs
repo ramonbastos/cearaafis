@@ -194,8 +194,8 @@ impl FingerprintTemplate {
         _double_data: &DoubleMatrix,
     ) -> Self {
         let size = ShortPoint::new(
-            feature_template.size.x() as i16,
-            feature_template.size.y() as i16,
+            feature_template.size.x as i16,
+            feature_template.size.y as i16,
         );
         let minutiae = feature_template
             .minutiae
