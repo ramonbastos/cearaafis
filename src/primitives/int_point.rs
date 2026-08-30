@@ -75,7 +75,9 @@ impl IntPoint {
                 for i in 0i32..=neg_rel_x {
                     result.push(IntPoint::new(
                         self.x - i,
-                        self.y - Doubles::round_to_int(i as f64 * (rel_y_f64 / neg_rel_x as f64)) as i32,
+                        self.y
+                            - Doubles::round_to_int(i as f64 * (rel_y_f64 / neg_rel_x as f64))
+                                as i32,
                     ));
                 }
             } else {
@@ -98,7 +100,9 @@ impl IntPoint {
                 let neg_rel_y = -relative.y;
                 for i in 0i32..=neg_rel_y {
                     result.push(IntPoint::new(
-                        self.x - Doubles::round_to_int(i as f64 * (rel_x_f64 / neg_rel_y as f64)) as i32,
+                        self.x
+                            - Doubles::round_to_int(i as f64 * (rel_x_f64 / neg_rel_y as f64))
+                                as i32,
                         self.y - i,
                     ));
                 }
@@ -125,7 +129,6 @@ impl Default for IntPoint {
         Self::ZERO
     }
 }
-
 
 impl Copy for IntPoint {}
 
@@ -166,7 +169,9 @@ impl Eq for IntPoint {}
 
 impl PartialOrd for IntPoint {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.y.partial_cmp(&other.y).map(|r| r.then(self.x.cmp(&other.x)))
+        self.y
+            .partial_cmp(&other.y)
+            .map(|r| r.then(self.x.cmp(&other.x)))
     }
 }
 
@@ -219,12 +224,18 @@ mod tests {
 
     #[test]
     fn test_add() {
-        assert_eq!(IntPoint::new(1, 2) + IntPoint::new(3, 4), IntPoint::new(4, 6));
+        assert_eq!(
+            IntPoint::new(1, 2) + IntPoint::new(3, 4),
+            IntPoint::new(4, 6)
+        );
     }
 
     #[test]
     fn test_sub() {
-        assert_eq!(IntPoint::new(5, 3) - IntPoint::new(2, 1), IntPoint::new(3, 2));
+        assert_eq!(
+            IntPoint::new(5, 3) - IntPoint::new(2, 1),
+            IntPoint::new(3, 2)
+        );
     }
 
     #[test]

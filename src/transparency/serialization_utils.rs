@@ -1,5 +1,4 @@
 /// SerializationUtils: CBOR serialization helpers — mirrors .NET SerializationUtils.cs.
-
 use serde::ser::Serialize;
 
 /// Serialize any serializable data to CBOR bytes.

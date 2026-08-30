@@ -3,7 +3,9 @@ use cearaafis::root::*;
 
 fn load_png(path: &str) -> Option<FingerprintTemplate> {
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_png(path, &opts).ok().map(|img| img.to_template())
+    FingerprintImage::from_png(path, &opts)
+        .ok()
+        .map(|img| img.to_template())
 }
 
 #[test]
@@ -24,10 +26,26 @@ fn debug_match_counts() {
         if let Some(tmpl) = load_png(path.as_str()) {
             eprintln!("[PNG] {} — {} minutiae", id, tmpl.minutiae.len());
 
-            let probe_xs = probe_tmpl.minutiae.iter().map(|m| m.position.x()).collect::<Vec<_>>();
-            let probe_ys = probe_tmpl.minutiae.iter().map(|m| m.position.y()).collect::<Vec<_>>();
-            let cand_xs = tmpl.minutiae.iter().map(|m| m.position.x()).collect::<Vec<_>>();
-            let cand_ys = tmpl.minutiae.iter().map(|m| m.position.y()).collect::<Vec<_>>();
+            let probe_xs = probe_tmpl
+                .minutiae
+                .iter()
+                .map(|m| m.position.x())
+                .collect::<Vec<_>>();
+            let probe_ys = probe_tmpl
+                .minutiae
+                .iter()
+                .map(|m| m.position.y())
+                .collect::<Vec<_>>();
+            let cand_xs = tmpl
+                .minutiae
+                .iter()
+                .map(|m| m.position.x())
+                .collect::<Vec<_>>();
+            let cand_ys = tmpl
+                .minutiae
+                .iter()
+                .map(|m| m.position.y())
+                .collect::<Vec<_>>();
 
             eprintln!(
                 "  probe: x=[{}, {}] y=[{}, {}]",

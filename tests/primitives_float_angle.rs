@@ -40,7 +40,9 @@ mod tests {
         // distance is the shortest arc between two angles
         assert!(FloatAngle::distance(0.0, 0.0).abs() < 0.001);
         assert!((FloatAngle::distance(0.0, FloatAngle::PI) - FloatAngle::PI).abs() < 0.001);
-        assert!((FloatAngle::distance(FloatAngle::PI, FloatAngle::PI2) - FloatAngle::PI).abs() < 0.001);
+        assert!(
+            (FloatAngle::distance(FloatAngle::PI, FloatAngle::PI2) - FloatAngle::PI).abs() < 0.001
+        );
     }
 
     #[test]

@@ -1,6 +1,8 @@
 /// NoTransparency: a transparency implementation that discards all data — mirrors .NET NoTransparency.cs.
-
-use super::{ConsistentHashEntry, ConsistentMinutiaPair, ConsistentPairingGraph, ConsistentSkeleton, FingerprintTransparency, ScoringData};
+use super::{
+    ConsistentHashEntry, ConsistentMinutiaPair, ConsistentPairingGraph, ConsistentSkeleton,
+    FingerprintTransparency, ScoringData,
+};
 
 pub struct NoTransparency;
 

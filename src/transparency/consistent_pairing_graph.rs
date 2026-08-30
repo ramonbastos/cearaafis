@@ -1,5 +1,4 @@
 /// ConsistentPairingGraph: pairing graph data for transparency logging — mirrors .NET ConsistentPairingGraph.cs.
-
 use super::consistent_edge_pair::ConsistentEdgePair;
 use super::consistent_minutia_pair::ConsistentMinutiaPair;
 
@@ -10,8 +9,16 @@ pub struct ConsistentPairingGraph {
 }
 
 impl ConsistentPairingGraph {
-    pub fn new(root: ConsistentMinutiaPair, tree: Vec<ConsistentEdgePair>, support: Vec<ConsistentEdgePair>) -> Self {
-        Self { root, tree, support }
+    pub fn new(
+        root: ConsistentMinutiaPair,
+        tree: Vec<ConsistentEdgePair>,
+        support: Vec<ConsistentEdgePair>,
+    ) -> Self {
+        Self {
+            root,
+            tree,
+            support,
+        }
     }
 }
 
@@ -45,11 +52,7 @@ mod tests {
 
     #[test]
     fn test_consistent_pairing_graph_empty() {
-        let graph = ConsistentPairingGraph::new(
-            ConsistentMinutiaPair::new(0, 0),
-            vec![],
-            vec![],
-        );
+        let graph = ConsistentPairingGraph::new(ConsistentMinutiaPair::new(0, 0), vec![], vec![]);
 
         assert!(graph.tree.is_empty());
         assert!(graph.support.is_empty());

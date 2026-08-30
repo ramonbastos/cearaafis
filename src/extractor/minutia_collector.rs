@@ -2,9 +2,9 @@
 /// Mirrors .NET MinutiaCollector.cs.
 use crate::features::Minutia;
 use crate::features::MinutiaType;
+use crate::parameters::Parameters;
 use crate::primitives::bool_matrix::BooleanMatrix;
 use crate::primitives::int_point::IntPoint;
-use crate::parameters::Parameters;
 
 /// Collected minutiae results.
 pub struct MinutiaCollector {
@@ -20,7 +20,9 @@ impl MinutiaCollector {
 
         for y in 0..h {
             for x in 0..w {
-                if !skeleton.get(x, y) { continue; }
+                if !skeleton.get(x, y) {
+                    continue;
+                }
 
                 let mut neighbor_count = 0usize;
                 let mut sum_x = 0.0f64;
@@ -29,7 +31,9 @@ impl MinutiaCollector {
 
                 for dy in -1i32..=1i32 {
                     for dx in -1i32..=1i32 {
-                        if dx == 0 && dy == 0 { continue; }
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
                         let nx = x as i32 + dx;
                         let ny = y as i32 + dy;
                         if nx >= 0 && ny >= 0 && nx < w as i32 && ny < h as i32 {
@@ -47,20 +51,38 @@ impl MinutiaCollector {
 
                 if neighbor_count <= 1 {
                     // Endpoint (ridge ending)
-                    let angle = first_neighbor.map(|n| {
-                        let dx = (n.x() - x as i32) as f64;
-                        let dy = (n.y() - y as i32) as f64;
-                        let a = dy.atan2(dx);
-                        if a >= 0.0 { a } else { a + 2.0 * std::f64::consts::PI }
-                    }).unwrap_or(0.0);
-                    minutiae.push(Minutia::new(IntPoint::new(x as i32, y as i32), angle, MinutiaType::Ending));
+                    let angle = first_neighbor
+                        .map(|n| {
+                            let dx = (n.x() - x as i32) as f64;
+                            let dy = (n.y() - y as i32) as f64;
+                            let a = dy.atan2(dx);
+                            if a >= 0.0 {
+                                a
+                            } else {
+                                a + 2.0 * std::f64::consts::PI
+                            }
+                        })
+                        .unwrap_or(0.0);
+                    minutiae.push(Minutia::new(
+                        IntPoint::new(x as i32, y as i32),
+                        angle,
+                        MinutiaType::Ending,
+                    ));
                 } else if neighbor_count >= 3 {
                     // Bifurcation (3+ arms)
                     let avg_x = sum_x / neighbor_count as f64;
                     let avg_y = sum_y / neighbor_count as f64;
                     let angle = avg_y.atan2(avg_x);
-                    let angle = if angle >= 0.0 { angle } else { angle + 2.0 * std::f64::consts::PI };
-                    minutiae.push(Minutia::new(IntPoint::new(x as i32, y as i32), angle, MinutiaType::Bifurcation));
+                    let angle = if angle >= 0.0 {
+                        angle
+                    } else {
+                        angle + 2.0 * std::f64::consts::PI
+                    };
+                    minutiae.push(Minutia::new(
+                        IntPoint::new(x as i32, y as i32),
+                        angle,
+                        MinutiaType::Bifurcation,
+                    ));
                 }
             }
         }
@@ -99,7 +121,9 @@ mod tests {
     #[test]
     fn test_collect_from_line() {
         let mut skeleton = BooleanMatrix::new(10, 10);
-        for x in 0..10 { skeleton.set(x, 5, true); }
+        for x in 0..10 {
+            skeleton.set(x, 5, true);
+        }
         let collector = MinutiaCollector::from_skeleton(&skeleton);
         let mins = collector.minutiae();
         assert!(mins.len() >= 2);
@@ -108,8 +132,12 @@ mod tests {
     #[test]
     fn test_collect_from_cross() {
         let mut skeleton = BooleanMatrix::new(10, 10);
-        for x in 0..10 { skeleton.set(x, 5, true); }
-        for y in 0..10 { skeleton.set(5, y, true); }
+        for x in 0..10 {
+            skeleton.set(x, 5, true);
+        }
+        for y in 0..10 {
+            skeleton.set(5, y, true);
+        }
         let collector = MinutiaCollector::from_skeleton(&skeleton);
         let mins = collector.minutiae();
         assert!(mins.len() >= 4);
@@ -125,7 +153,11 @@ mod tests {
     #[test]
     fn test_max_minutiae() {
         let mut skeleton = BooleanMatrix::new(50, 50);
-        for y in 0..50 { for x in 0..50 { skeleton.set(x, y, true); } }
+        for y in 0..50 {
+            for x in 0..50 {
+                skeleton.set(x, y, true);
+            }
+        }
         let collector = MinutiaCollector::from_skeleton(&skeleton);
         assert!(collector.minutiae().len() <= Parameters::MAX_MINUTIAE);
     }

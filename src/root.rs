@@ -81,7 +81,9 @@ impl FingerprintImage {
         for (i, &byte) in data.iter().enumerate() {
             let x = i % width;
             let y = i / width;
-            matrix.set(x, y, byte as f64);
+            // Normalize like .NET FingerprintImage: pixels become [0,1] with
+            // black=1 (ink) and white=0 — inverts grayscale and scales down.
+            matrix.set(x, y, 1.0 - byte as f64 / 255.0);
         }
         Self { data: matrix, dpi }
     }
@@ -103,7 +105,8 @@ impl FingerprintImage {
         for y in 0..h {
             for x in 0..w {
                 let pixel = gray.get_pixel(x as u32, y as u32);
-                matrix.set(x, y, pixel[0] as f64);
+                // Normalize like .NET FingerprintImage: [0,1] with black=1.
+                matrix.set(x, y, 1.0 - pixel[0] as f64 / 255.0);
             }
         }
 
@@ -251,10 +254,7 @@ impl FingerprintMatcher {
     /// Uses the MatcherEngine with root-pair enumeration and rigid transform.
     pub fn match_with_template(&self, candidate: &FingerprintTemplate) -> f64 {
         // Use the MatcherEngine for the actual scoring
-        let engine = MatcherEngine::new(
-            self.template.minutiae.clone(),
-            candidate.minutiae.clone(),
-        );
+        let engine = MatcherEngine::new(self.template.minutiae.clone(), candidate.minutiae.clone());
         let data = engine.score();
 
         // Map engine score to the 0-100 scale
@@ -395,7 +395,11 @@ mod tests {
         // Score is proportional to minutiae count (.NET SourceAFIS scoring formula);
         // a 2-minutiae template can't reach 50+, real templates have 20-80+ minutiae.
         // Identical templates should still score meaningfully above zero.
-        assert!(score > 0.0, "Same template should score > 0, got {:.1}", score);
+        assert!(
+            score > 0.0,
+            "Same template should score > 0, got {:.1}",
+            score
+        );
     }
 
     #[test]
@@ -421,7 +425,11 @@ mod tests {
 
         matcher.add_candidate("candidate1".to_string(), tmpl);
         let score = matcher.match_with_id("candidate1");
-        assert!(score > 0.0, "Same template should score > 0, got {:.1}", score);
+        assert!(
+            score > 0.0,
+            "Same template should score > 0, got {:.1}",
+            score
+        );
     }
 
     #[test]

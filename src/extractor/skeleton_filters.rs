@@ -1,7 +1,7 @@
+use crate::parameters::Parameters;
 /// SkeletonFilters: filters for skeleton cleaning (dot, pore, gap, tail, fragment, knot).
 /// Mirrors .NET SkeletonFilters.cs.
 use crate::primitives::bool_matrix::BooleanMatrix;
-use crate::parameters::Parameters;
 
 /// Skeleton filter results.
 pub struct SkeletonFilter {
@@ -27,22 +27,32 @@ impl SkeletonFilter {
 
         for y in 1..(h - 1) {
             for x in 1..(w - 1) {
-                if !skeleton.get(x, y) { continue; }
+                if !skeleton.get(x, y) {
+                    continue;
+                }
                 let mut n = 0usize;
                 for dy in -1i32..=1i32 {
                     for dx in -1i32..=1i32 {
-                        if dx == 0 && dy == 0 { continue; }
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
                         let nx = x as i32 + dx;
                         let ny = y as i32 + dy;
                         if nx >= 0 && ny >= 0 && nx < w as i32 && ny < h as i32 {
-                            if skeleton.get(nx as usize, ny as usize) { n += 1; }
+                            if skeleton.get(nx as usize, ny as usize) {
+                                n += 1;
+                            }
                         }
                     }
                 }
-                if n == 0 { to_remove.push((x, y)); }
+                if n == 0 {
+                    to_remove.push((x, y));
+                }
             }
         }
-        for (x, y) in to_remove { skeleton.set(x, y, false); }
+        for (x, y) in to_remove {
+            skeleton.set(x, y, false);
+        }
     }
 }
 
@@ -61,7 +71,9 @@ mod tests {
     #[test]
     fn test_filter_keeps_lines() {
         let mut skeleton = BooleanMatrix::new(10, 10);
-        for x in 0..10 { skeleton.set(x, 5, true); }
+        for x in 0..10 {
+            skeleton.set(x, 5, true);
+        }
         let filter = SkeletonFilter::new(&skeleton);
         assert!(filter.skeleton().get(5, 5));
     }
@@ -69,7 +81,11 @@ mod tests {
     #[test]
     fn test_filter_dimensions() {
         let mut skeleton = BooleanMatrix::new(20, 20);
-        for y in 0..20 { for x in 0..20 { skeleton.set(x, y, true); } }
+        for y in 0..20 {
+            for x in 0..20 {
+                skeleton.set(x, y, true);
+            }
+        }
         let filter = SkeletonFilter::new(&skeleton);
         assert_eq!(filter.skeleton().width(), 20);
         assert_eq!(filter.skeleton().height(), 20);

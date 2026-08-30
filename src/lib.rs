@@ -8,19 +8,19 @@ mod tests {
     }
 }
 
-pub mod primitives;
-pub mod parameters;
-pub mod features;
-pub mod templates;
 pub mod extractor;
-pub mod extractor_skeletons;
 pub mod extractor_minutiae;
+pub mod extractor_skeletons;
+pub mod features;
 pub mod matcher;
+pub mod parameters;
+pub mod primitives;
 pub mod root;
+pub mod templates;
 pub mod transparency;
 
-pub use primitives::*;
-pub use parameters::*;
 pub use features::*;
-pub use templates::*;
+pub use parameters::*;
+pub use primitives::*;
 pub use root::*;
+pub use templates::*;

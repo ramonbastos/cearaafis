@@ -7,7 +7,6 @@
 /// - PositionsY: i16[]
 /// - Directions: f32[] (normalized angles)
 /// - Types: string of 'B'/'E' chars (Bifurcation/Ending)
-
 use crate::features::{Minutia, MinutiaType};
 use crate::primitives::int_point::IntPoint;
 use crate::primitives::short_point::ShortPoint;

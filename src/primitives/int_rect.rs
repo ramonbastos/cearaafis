@@ -145,20 +145,29 @@ impl Copy for IntRect {}
 
 impl std::fmt::Debug for IntRect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "IntRect({}x{} @ [{}, {}])", self.width, self.height, self.x, self.y)
+        write!(
+            f,
+            "IntRect({}x{} @ [{}, {}])",
+            self.width, self.height, self.x, self.y
+        )
     }
 }
 
 impl std::hash::Hash for IntRect {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        let h = ((self.x as i64 * 31 + self.y as i64) * 31 + self.width as i64) * 31 + self.height as i64;
+        let h = ((self.x as i64 * 31 + self.y as i64) * 31 + self.width as i64) * 31
+            + self.height as i64;
         h.hash(state);
     }
 }
 
 impl std::fmt::Display for IntRect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}x{} @ [{}, {}]", self.width, self.height, self.x, self.y)
+        write!(
+            f,
+            "{}x{} @ [{}, {}]",
+            self.width, self.height, self.x, self.y
+        )
     }
 }
 

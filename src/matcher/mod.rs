@@ -175,14 +175,12 @@ impl EdgeHashes {
                         for nbr in -1i32..=1 {
                             let candidate_hash = ((ref_bin as i64 + r as i64) << 24)
                                 | (((neighbor_bin as i64) + nbr as i64) << 16)
-                                | ((length_bin as i64 + len as i64));
-                            map.entry(candidate_hash)
-                                .or_default()
-                                .push(EdgeHashEntry {
-                                    shape: edge,
-                                    reference,
-                                    neighbor,
-                                });
+                                | (length_bin as i64 + len as i64);
+                            map.entry(candidate_hash).or_default().push(EdgeHashEntry {
+                                shape: edge,
+                                reference,
+                                neighbor,
+                            });
                         }
                     }
                 }
@@ -215,8 +213,7 @@ impl EdgeHashes {
         if length_delta >= -MAX_DISTANCE_ERROR && length_delta <= MAX_DISTANCE_ERROR {
             let ref_diff = angle_diff(probe.reference_angle, candidate.reference_angle);
             if ref_diff <= MAX_ANGLE_ERROR || ref_diff >= COMPLEMENTARY_MAX_ANGLE_ERROR {
-                let neighbor_diff =
-                    angle_diff(probe.neighbor_angle, candidate.neighbor_angle);
+                let neighbor_diff = angle_diff(probe.neighbor_angle, candidate.neighbor_angle);
                 if neighbor_diff <= MAX_ANGLE_ERROR
                     || neighbor_diff >= COMPLEMENTARY_MAX_ANGLE_ERROR
                 {
@@ -261,7 +258,12 @@ impl MinutiaPair {
         }
     }
 
-    pub fn new_with_ref(probe: usize, candidate: usize, probe_ref: usize, candidate_ref: usize) -> Self {
+    pub fn new_with_ref(
+        probe: usize,
+        candidate: usize,
+        probe_ref: usize,
+        candidate_ref: usize,
+    ) -> Self {
         Self {
             probe,
             candidate,
@@ -502,10 +504,14 @@ impl MatcherEngine {
 
             distance_error_sum += inner_distance_radius
                 .max(((probe_edge.length as f64) - (cand_edge.length as f64)).abs());
-            angle_error_sum += inner_angle_radius
-                .max(angle_diff(probe_edge.reference_angle, cand_edge.reference_angle));
-            angle_error_sum += inner_angle_radius
-                .max(angle_diff(probe_edge.neighbor_angle, cand_edge.neighbor_angle));
+            angle_error_sum += inner_angle_radius.max(angle_diff(
+                probe_edge.reference_angle,
+                cand_edge.reference_angle,
+            ));
+            angle_error_sum += inner_angle_radius.max(angle_diff(
+                probe_edge.neighbor_angle,
+                cand_edge.neighbor_angle,
+            ));
         }
         let dist_potential = 13.0 * (count - 1) as f64;
         let dist_acc = if dist_potential > 0.0 {
@@ -521,8 +527,13 @@ impl MatcherEngine {
             0.0
         };
 
-        let total = minutia_score + minutia_frac_score + supported_score + edge_score
-            + type_score + dist_acc + angle_acc;
+        let total = minutia_score
+            + minutia_frac_score
+            + supported_score
+            + edge_score
+            + type_score
+            + dist_acc
+            + angle_acc;
         self.shape_score(total)
     }
 
@@ -612,8 +623,7 @@ fn grow_pairing(
 ) {
     let mut used_probe: HashSet<usize> = pairs.iter().map(|p| p.probe).collect();
     let mut used_cand: HashSet<usize> = pairs.iter().map(|p| p.candidate).collect();
-    let mut queue: std::collections::VecDeque<MinutiaPair> =
-        pairs.iter().cloned().collect();
+    let mut queue: std::collections::VecDeque<MinutiaPair> = pairs.iter().cloned().collect();
     pairs.clear();
 
     while let Some(next) = queue.pop_front() {
@@ -654,9 +664,9 @@ fn grow_pairing(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::primitives::int_point::IntPoint;
-    use crate::primitives::double_angle::DoubleAngle;
     use crate::features::MinutiaType;
+    use crate::primitives::double_angle::DoubleAngle;
+    use crate::primitives::int_point::IntPoint;
 
     fn make_minutia(x: i32, y: i32, angle: f64, typ: MinutiaType) -> Minutia {
         Minutia::new(IntPoint::new(x, y), angle, typ)

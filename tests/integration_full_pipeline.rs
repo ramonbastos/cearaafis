@@ -15,40 +15,35 @@ use cearaafis::*;
 fn load_png(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_png(&path, &opts)
-        .expect(&format!("Failed to load PNG: {}", path))
+    FingerprintImage::from_png(&path, &opts).expect(&format!("Failed to load PNG: {}", path))
 }
 
 /// Load a fingerprint image from test_resources/ using JPEG format.
 fn load_jpeg(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_jpeg(&path, &opts)
-        .expect(&format!("Failed to load JPEG: {}", path))
+    FingerprintImage::from_jpeg(&path, &opts).expect(&format!("Failed to load JPEG: {}", path))
 }
 
 /// Load a fingerprint image from test_resources/ using BMP format.
 fn load_bmp(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_bmp(&path, &opts)
-        .expect(&format!("Failed to load BMP: {}", path))
+    FingerprintImage::from_bmp(&path, &opts).expect(&format!("Failed to load BMP: {}", path))
 }
 
 /// Load grayscale raw bytes from test_resources/.
 /// These .dat files contain raw pixel data in row-major order.
 fn load_raw(name: &str, width: usize, height: usize, dpi: u32) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
-    let bytes = std::fs::read(&path)
-        .unwrap_or_else(|e| panic!("Failed to read {}: {:?}", path, e));
+    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("Failed to read {}: {:?}", path, e));
     FingerprintImage::from_raw(bytes, width, height, dpi)
 }
 
 /// Load a fingerprint image from bytes (PNG/JPEG/BMP auto-detect).
 fn load_bytes(name: &str) -> FingerprintImage {
     let path = format!("test_resources/{}", name);
-    let bytes = std::fs::read(&path)
-        .unwrap_or_else(|e| panic!("Failed to read {}: {:?}", path, e));
+    let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("Failed to read {}: {:?}", path, e));
     let opts = FingerprintImageOptions::default();
     FingerprintImage::from_bytes(&bytes, &opts)
         .expect(&format!("Failed to load bytes from: {}", path))
@@ -171,7 +166,11 @@ fn test_full_pipeline_probe_to_nonmatching() {
     // With stub scoring (greedy 1-to-1 minutia matching without angle or shape),
     // score depends on coincidental position overlap. Verify non-negative.
     // TODO: replace stub with MatcherEngine for real SourceAFIS scoring.
-    assert!(score >= 0.0, "Score should be non-negative, got {:.1}", score);
+    assert!(
+        score >= 0.0,
+        "Score should be non-negative, got {:.1}",
+        score
+    );
 }
 
 #[test]
@@ -342,21 +341,33 @@ fn test_resource_files_exist() {
 fn test_gray_probe_dat_size() {
     let path = "test_resources/gray-probe.dat";
     let metadata = std::fs::metadata(path).expect("gray-probe.dat should exist");
-    assert_eq!(metadata.len(), 176956, "gray-probe.dat should be 176,956 bytes (332*533)");
+    assert_eq!(
+        metadata.len(),
+        176956,
+        "gray-probe.dat should be 176,956 bytes (332*533)"
+    );
 }
 
 #[test]
 fn test_gray_matching_dat_size() {
     let path = "test_resources/gray-matching.dat";
     let metadata = std::fs::metadata(path).expect("gray-matching.dat should exist");
-    assert_eq!(metadata.len(), 130240, "gray-matching.dat should be 130,240 bytes (352*370)");
+    assert_eq!(
+        metadata.len(),
+        130240,
+        "gray-matching.dat should be 130,240 bytes (352*370)"
+    );
 }
 
 #[test]
 fn test_gray_nonmatching_dat_size() {
     let path = "test_resources/gray-nonmatching.dat";
     let metadata = std::fs::metadata(path).expect("gray-nonmatching.dat should exist");
-    assert_eq!(metadata.len(), 144855, "gray-nonmatching.dat should be 144,855 bytes (333*435)");
+    assert_eq!(
+        metadata.len(),
+        144855,
+        "gray-nonmatching.dat should be 144,855 bytes (333*435)"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -375,7 +386,8 @@ fn test_from_png_with_dpi_500() {
 fn test_from_jpeg_with_dpi_500() {
     let opts = FingerprintImageOptions::new(500);
     let path = "test_resources/probe.jpeg";
-    let img = FingerprintImage::from_jpeg(path, &opts).expect("Should load probe.jpeg with DPI 500");
+    let img =
+        FingerprintImage::from_jpeg(path, &opts).expect("Should load probe.jpeg with DPI 500");
     assert_eq!(img.dpi, 500);
 }
 

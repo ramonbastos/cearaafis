@@ -1,7 +1,7 @@
-/// Skeleton: skeleton structure with type, size, and minutiae — mirrors .NET Skeleton.cs.
-use crate::primitives::{bool_matrix::BooleanMatrix, int_point::IntPoint};
 use super::skeleton_minutia::SkeletonMinutia;
 use super::skeleton_type::SkeletonType;
+/// Skeleton: skeleton structure with type, size, and minutiae — mirrors .NET Skeleton.cs.
+use crate::primitives::{bool_matrix::BooleanMatrix, int_point::IntPoint};
 
 pub struct Skeleton {
     pub type_: SkeletonType,
@@ -23,7 +23,8 @@ impl Skeleton {
     }
 
     pub fn remove_minutia(&mut self, minutia: &SkeletonMinutia) {
-        self.minutiae.retain(|m| m.position.x != minutia.position.x || m.position.y != minutia.position.y);
+        self.minutiae
+            .retain(|m| m.position.x != minutia.position.x || m.position.y != minutia.position.y);
     }
 
     pub fn shadow(&self) -> BooleanMatrix {

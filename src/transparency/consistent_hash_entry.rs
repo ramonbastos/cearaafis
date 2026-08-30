@@ -1,5 +1,4 @@
 /// ConsistentHashEntry: hash entry data for transparency logging — mirrors .NET ConsistentHashEntry.cs.
-
 use crate::features::IndexedEdge;
 
 pub struct ConsistentHashEntry {
@@ -26,8 +25,8 @@ impl serde::Serialize for ConsistentHashEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::primitives::short_point::ShortPoint;
     use crate::features::EdgeShape;
+    use crate::primitives::short_point::ShortPoint;
 
     #[test]
     fn test_consistent_hash_entry_new() {

@@ -1,6 +1,6 @@
+use super::minutia_type::MinutiaType;
 /// Minutia: a single minutia point in the fingerprint — mirrors .NET Minutia.cs.
 use crate::primitives::int_point::IntPoint;
-use super::minutia_type::MinutiaType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Minutia {

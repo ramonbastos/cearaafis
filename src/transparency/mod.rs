@@ -1,21 +1,20 @@
-mod no_transparency;
 mod consistent_edge_pair;
 mod consistent_hash_entry;
 mod consistent_minutia_pair;
 mod consistent_pairing_graph;
 mod consistent_skeleton;
 mod consistent_skeleton_ridge;
+mod no_transparency;
 mod serialization_utils;
 
-pub use no_transparency::*;
 pub use consistent_edge_pair::*;
 pub use consistent_hash_entry::*;
 pub use consistent_minutia_pair::*;
 pub use consistent_pairing_graph::*;
 pub use consistent_skeleton::*;
 pub use consistent_skeleton_ridge::*;
+pub use no_transparency::*;
 pub use serialization_utils::*;
-
 
 /// FingerprintTransparency: trait for optional debug/logging during matching.
 pub trait FingerprintTransparency: Send {
