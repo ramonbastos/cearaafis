@@ -30,7 +30,7 @@ impl<T: Default + Ord> PriorityQueue<T> {
     }
 
     pub fn clear(&mut self) {
-        self.heap.truncate(0);
+        self.heap.clear();
         self.size = 0;
     }
 
