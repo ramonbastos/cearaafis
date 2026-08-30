@@ -49,16 +49,29 @@ impl FeatureExtractor {
 
     /// Extract features from a fingerprint image.
     pub fn extract(&self, image: &DoubleMatrix) -> (ShortPoint, Vec<Minutia>, Vec<Vec<NeighborEdge>>) {
-        // Debug: count skeleton pixels through pipeline
-        let resized = Self::stage_resize(image, self.dpi);
-        let local_hist = Self::stage_local_histograms(&resized);
-        let _segmentation = Self::stage_segmentation(&resized);
-        let equalized = Self::stage_equalize(&resized, &local_hist);
-        let binarized = Self::stage_binarize(&equalized, &local_hist);
-        let voted = Self::stage_vote_filter(&binarized);
-        let skeleton = Self::stage_skeleton(voted.clone());
-        let cleaned = Self::stage_skeleton_filters(skeleton.clone());
-        let (mut minutiae, edges) = Self::stage_minutia_collection(&cleaned, &equalized);
+        let profile = std::env::var("EXTRACT_PROFILE").is_ok();
+        macro_rules! timed {
+            ($label:expr, $body:expr) => {{
+                if profile {
+                    let __t0 = std::time::Instant::now();
+                    let __r = $body;
+                    eprintln!("[profile] {}: {:.1}ms", $label, __t0.elapsed().as_secs_f64() * 1000.0);
+                    __r
+                } else {
+                    $body
+                }
+            }};
+        }
+
+        let resized = timed!("resize", Self::stage_resize(image, self.dpi));
+        let local_hist = timed!("local_histograms", Self::stage_local_histograms(&resized));
+        let _segmentation = timed!("segmentation", Self::stage_segmentation(&resized));
+        let equalized = timed!("equalize", Self::stage_equalize(&resized, &local_hist));
+        let binarized = timed!("binarize", Self::stage_binarize(&equalized, &local_hist));
+        let voted = timed!("vote_filter", Self::stage_vote_filter(&binarized));
+        let skeleton = timed!("skeleton", Self::stage_skeleton(voted.clone()));
+        let cleaned = timed!("skeleton_filters", Self::stage_skeleton_filters(skeleton.clone()));
+        let (mut minutiae, edges) = timed!("minutia_collection", Self::stage_minutia_collection(&cleaned, &equalized));
 
         // Debug logging
         let bin_count = Self::boolean_count(&binarized);
