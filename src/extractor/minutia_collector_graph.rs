@@ -28,8 +28,6 @@ pub fn collect(
 }
 
 fn collect_skeleton(minutiae: &mut Vec<Minutia>, skeleton: &SkeletonGraph, typ: MinutiaType) {
-    let typ: MinutiaType = typ.clone();
-    let typ: MinutiaType = typ; // shadow (moved per-iteration below via ref)
     for sminutia in &skeleton.minutiae {
         let live: Vec<usize> = sminutia
             .ridges
