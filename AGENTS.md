@@ -226,6 +226,7 @@ parameters → primitives → features → templates
 | Lesson | Details |
 |--------|---------|
 | **Sempre le o .cs antes de alterar o .rs** | Nao adivinhar a logica C# — verificar a assinatura, parametros, e testes |
+| **REGRA OBRIGATORIA: ler e analisar o .cs correspondente ANTES de tocar qualquer .rs** | Sempre que for alterar um código Rust, primeiro leia e analise o código C# correspondente no projeto de referência (/tmp/sourceafis-net/SourceAFIS/) para se subsidiar — objetivo: aproximar o Rust da performance e da técnica usadas no C#. Nunca "adivinhar" a implementação; usar o .NET como fonte de verdade de algoritmo, estrutura de dados e otimização (ex.: block-based histograms, imagem integral no VoteFilter). |
 | **CircularArray move_items usa indices logicos** | indices passados para move_items devem ser mapeados via location() antes de acessar array fisico |
 | **ReversedList busca index_of em ordem reversa** | index_of(item) itera get(0), get(1), get(2)... — o primeiro match é o mais recente |
 | **PriorityQueue é min-heap** | Menor elemento no topo — testes devem verificar pop() em ordem crescente |

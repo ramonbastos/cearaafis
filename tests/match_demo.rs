@@ -3,7 +3,9 @@ use cearaafis::root::*;
 
 fn load_png(path: &str) -> Option<FingerprintTemplate> {
     let opts = FingerprintImageOptions::default();
-    FingerprintImage::from_png(path, &opts).ok().map(|img| img.to_template())
+    FingerprintImage::from_png(path, &opts)
+        .ok()
+        .map(|img| img.to_template())
 }
 
 fn load_raw(path: &str, w: usize, h: usize, dpi: u32) -> Option<FingerprintTemplate> {
@@ -104,7 +106,10 @@ fn match_probe_against_all() {
     let match_score = matcher.match_with_id("matching");
     eprintln!("\nmatching.png score: {:.1} (threshold >= 40)", match_score);
     let nonmatch_score = matcher.match_with_id("nonmatching");
-    eprintln!("nonmatching.png score: {:.1} (threshold <= 20)", nonmatch_score);
+    eprintln!(
+        "nonmatching.png score: {:.1} (threshold <= 20)",
+        nonmatch_score
+    );
 
     assert!(
         match_score >= nonmatch_score,

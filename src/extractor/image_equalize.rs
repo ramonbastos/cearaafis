@@ -1,185 +1,212 @@
-/// ImageEqualize: enhances contrast using histogram equalization.
-/// Mirrors .NET ImageEqualize.cs.
-use crate::primitives::double_matrix::DoubleMatrix;
-use crate::primitives::histogram_cube::HistogramCube;
+/// ImageEqualization: block-level histogram equalization with bilinear
+/// interpolation of per-corner mappings. Mirrors .NET ImageEqualization.cs.
+///
+/// For each SECONDARY block (corner), builds a 256-entry mapping that spreads
+/// occupied histogram bins across [-1, 1], clamped by MaxEqualizationScaling /
+/// MinEqualizationScaling band widths. Each pixel then interpolates between
+/// the 4 corner mappings bilinearly (rx, ry within its block). Masked-out
+/// blocks become -1.
 use crate::parameters::Parameters;
+use crate::primitives::block_map::BlockMap;
+use crate::primitives::bool_matrix::BooleanMatrix;
+use crate::primitives::double_matrix::DoubleMatrix;
+use crate::primitives::doubles::Doubles;
+use crate::primitives::histogram_cube::HistogramCube;
+use crate::primitives::int_point::IntPoint;
+use std::collections::HashMap;
 
-/// Image equalization parameters and results.
-pub struct ImageEqualizer {
-    /// Original image.
-    image: DoubleMatrix,
-    /// Equalized image.
-    result: DoubleMatrix,
-}
+const RANGE_MIN: f64 = -1.0;
+const RANGE_MAX: f64 = 1.0;
+const RANGE_SIZE: f64 = RANGE_MAX - RANGE_MIN;
 
-impl ImageEqualizer {
-    /// Create equalized image from original using histogram equalization.
-    pub fn new(image: &DoubleMatrix, _local_hist: &HistogramCube) -> Self {
-        let w = image.width();
-        let h = image.height();
+pub fn equalize(
+    blocks: &BlockMap,
+    image: &DoubleMatrix,
+    histogram: &HistogramCube,
+    block_mask: &BooleanMatrix,
+) -> DoubleMatrix {
+    let bins = histogram.bins;
+    let width_max = RANGE_SIZE / bins as f64 * Parameters::MAX_EQUALIZATION_SCALING;
+    let width_min = RANGE_SIZE / bins as f64 * Parameters::MIN_EQUALIZATION_SCALING;
 
-        // Step 1: Compute histogram and check for uniform image
-        let mut hist = vec![0.0; 256];
-        let mut total = 0.0;
-        let mut min_val = 255.0;
-        let mut max_val = 0.0;
-        let mut distinct_bins = 0usize;
+    // limitedMin[i]/limitedMax[i] clamp the equalized value of bin i so a
+    // single dominant bin can't smear the whole range.
+    let limited_min: Vec<f64> = (0..bins)
+        .map(|i| {
+            ((i as f64) * width_min + RANGE_MIN)
+                .max(RANGE_MAX - ((bins - 1 - i) as f64) * width_max)
+        })
+        .collect();
+    let limited_max: Vec<f64> = (0..bins)
+        .map(|i| {
+            ((i as f64) * width_max + RANGE_MIN)
+                .min(RANGE_MAX - ((bins - 1 - i) as f64) * width_min)
+        })
+        .collect();
+    let dequantized: Vec<f64> = (0..bins).map(|i| i as f64 / (bins - 1) as f64).collect();
 
-        for y in 0..h {
-            for x in 0..w {
-                let val = image.get(x, y);
-                let b = (val / 255.0 * 255.0) as usize;
-                if b >= 256 {
-                    hist[255] += 1.0;
-                } else if b < 0 {
-                    hist[0] += 1.0;
-                } else {
-                    hist[b] += 1.0;
-                }
-                total += 1.0;
-                if val < min_val {
-                    min_val = val;
-                }
-                if val > max_val {
-                    max_val = val;
+    // One mapping per secondary block (corner), like .NET's Dictionary.
+    let mut mappings: HashMap<IntPoint, Vec<f64>> = HashMap::new();
+    for corner in blocks.secondary.blocks.iterate() {
+        let mut mapping = vec![0.0f64; bins];
+        let cx = corner.x();
+        let cy = corner.y();
+        // .NET checks blockMask at the corner itself or any of the 3 blocks
+        // up-left of it (matching which primary blocks feed this corner).
+        let touches = block_mask.get_with_fallback(cx, cy, false)
+            || block_mask.get_with_fallback(cx - 1, cy, false)
+            || block_mask.get_with_fallback(cx, cy - 1, false)
+            || block_mask.get_with_fallback(cx - 1, cy - 1, false);
+        if touches {
+            let total = histogram.sum(cx as usize, cy as usize);
+            if total > 0 {
+                let step = RANGE_SIZE / total as f64;
+                let mut top = RANGE_MIN;
+                for i in 0..bins {
+                    let band = histogram.get(cx as usize, cy as usize, i) as f64 * step;
+                    let mut equalized = top + dequantized[i] * band;
+                    top += band;
+                    if equalized < limited_min[i] {
+                        equalized = limited_min[i];
+                    }
+                    if equalized > limited_max[i] {
+                        equalized = limited_max[i];
+                    }
+                    mapping[i] = equalized;
                 }
             }
         }
+        mappings.insert(corner, mapping);
+    }
 
-        // Count distinct bins (histogram concentration check)
-        for &count in &hist {
-            if count > 0.0 {
-                distinct_bins += 1;
-            }
-        }
-
-        // Uniform image (single bin): don't equalize, return original
-        if distinct_bins <= 1 {
-            let mut result = DoubleMatrix::new(w, h);
-            for y in 0..h {
-                for x in 0..w {
-                    result.set(x, y, image.get(x, y));
+    // Apply per-pixel with bilinear interpolation of the 4 surrounding corner
+    // mappings. .NET: Doubles.Interpolate(bottomleft, bottomright, topleft,
+    // topright, rx, ry) — note its argument order: interpolate_2d's x/y params
+    // and the corner ordering follow its signature.
+    let mut result = DoubleMatrix::new(image.width(), image.height());
+    for block in blocks.primary.blocks.iterate() {
+        let area = blocks.primary.block(block.x(), block.y());
+        if block_mask.get(block.x() as usize, block.y() as usize) {
+            let topleft = &mappings[&IntPoint::new(block.x(), block.y())];
+            let topright = &mappings[&IntPoint::new(block.x() + 1, block.y())];
+            let bottomleft = &mappings[&IntPoint::new(block.x(), block.y() + 1)];
+            let bottomright = &mappings[&IntPoint::new(block.x() + 1, block.y() + 1)];
+            for y in area.top()..area.bottom() {
+                if y < 0 || y as usize >= image.height() {
+                    continue;
+                }
+                for x in area.left()..area.right() {
+                    if x < 0 || x as usize >= image.width() {
+                        continue;
+                    }
+                    let depth = histogram
+                        .constrain((image.get(x as usize, y as usize) * bins as f64) as i32);
+                    let rx = ((x - area.x) as f64 + 0.5) / area.width as f64;
+                    let ry = ((y - area.y) as f64 + 0.5) / area.height as f64;
+                    // .NET Interpolate(bottomleft, bottomright, topleft, topright, x, y):
+                    //   left  = Interpolate(topleft, bottomleft, y)
+                    //   right = Interpolate(topright, bottomright, y)
+                    //   return Interpolate(left, right, x)
+                    let left = Doubles::interpolate(topleft[depth], bottomleft[depth], ry);
+                    let right = Doubles::interpolate(topright[depth], bottomright[depth], ry);
+                    result.set(
+                        x as usize,
+                        y as usize,
+                        Doubles::interpolate(left, right, rx),
+                    );
                 }
             }
-            return Self {
-                image: image.clone(),
-                result,
-            };
-        }
-
-        // Step 2: Compute cumulative distribution and map
-        let mut cuml = 0.0;
-        let mut lut = [0.0f64; 256];
-        for i in 0..256 {
-            cuml += hist[i];
-            lut[i] = (cuml / total) * 255.0;
-        }
-
-        // Step 3: Apply lookup table
-        let mut result = DoubleMatrix::new(w, h);
-
-        for y in 0..h {
-            for x in 0..w {
-                let val = image.get(x, y);
-                let b = (val / 255.0 * 255.0) as usize;
-                let clamped_b = b.min(255);
-                let eq_val = lut[clamped_b];
-
-                // Blend original with equalized value (matches .NET: val + diff * scaling)
-                let diff = eq_val - val;
-                let eq_result = val + diff * Parameters::MAX_EQUALIZATION_SCALING;
-                result.set(x, y, eq_result.max(0.0).min(255.0));
+        } else {
+            for y in area.top()..area.bottom() {
+                if y < 0 || y as usize >= image.height() {
+                    continue;
+                }
+                for x in area.left()..area.right() {
+                    if x < 0 || x as usize >= image.width() {
+                        continue;
+                    }
+                    result.set(x as usize, y as usize, -1.0);
+                }
             }
         }
-
-        Self {
-            image: image.clone(),
-            result,
-        }
     }
 
-    /// Slight contrast stretch to enhance mid-tones (mirrors .NET approach).
-    fn contrast_stretch(val: f64) -> f64 {
-        let normalized = val / 255.0;
-
-        // Apply contrast scaling centered on mid-tones
-        let stretched = (normalized - 0.5).abs();
-        let stretch_factor = stretched * Parameters::MAX_EQUALIZATION_SCALING;
-
-        // Map back — if original was dark, keep dark; if light, keep light
-        // The equalization already spread values, this just adds slight contrast
-        let result = normalized + (normalized - 0.5) * stretch_factor * 0.3;
-        result * 255.0
-    }
-
-    /// Get the equalized image.
-    pub fn image(&self) -> &DoubleMatrix {
-        &self.result
-    }
-
-    /// Get the original image.
-    pub fn original(&self) -> &DoubleMatrix {
-        &self.image
-    }
-}
-
-impl Default for ImageEqualizer {
-    fn default() -> Self {
-        Self {
-            image: DoubleMatrix::new(0, 0),
-            result: DoubleMatrix::new(0, 0),
-        }
-    }
+    result
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_equalize_basic() {
-        let mut img = DoubleMatrix::new(10, 10);
-        for y in 0..10 {
-            for x in 0..10 {
-                img.set(x, y, x as f64 * 10.0);
+    fn full_mask(blocks: &BlockMap) -> BooleanMatrix {
+        let mut mask = BooleanMatrix::new(
+            blocks.primary.blocks.x() as usize,
+            blocks.primary.blocks.y() as usize,
+        );
+        for y in 0..mask.height() {
+            for x in 0..mask.width() {
+                mask.set(x, y, true);
             }
         }
-        let _hist = HistogramCube::new(img.width(), img.height(), 256);
-        let equalizer = ImageEqualizer::new(&img, &_hist);
-        assert_eq!(equalizer.image().width(), img.width());
-        assert_eq!(equalizer.image().height(), img.height());
+        mask
+    }
+
+    fn build_45() -> (BlockMap, DoubleMatrix, HistogramCube) {
+        let blocks = BlockMap::new(45, 45, 15);
+        let mut image = DoubleMatrix::new(45, 45);
+        for y in 0..45 {
+            for x in 0..45 {
+                image.set(x, y, 0.5);
+            }
+        }
+        // Equalize consumes the SMOOTHED (secondary-block) histogram like .NET.
+        let primary = crate::extractor::local_histograms::create(&blocks, &image);
+        let smoothed = crate::extractor::local_histograms::smooth(&blocks, &primary);
+        (blocks, image, smoothed)
     }
 
     #[test]
-    fn test_equalize_uniform() {
-        let mut img = DoubleMatrix::new(10, 10);
-        for y in 0..10 {
-            for x in 0..10 {
-                img.set(x, y, 128.0);
-            }
-        }
-        let _hist = HistogramCube::new(img.width(), img.height(), 256);
-        let equalizer = ImageEqualizer::new(&img, &_hist);
-        let v = equalizer.image().get(5, 5);
-        assert!(v >= 100.0 && v <= 200.0, "uniform image should stay around 128, got {}", v);
+    fn test_equalize_output_dimensions() {
+        let (blocks, image, histogram) = build_45();
+        let mask = full_mask(&blocks);
+        let result = equalize(&blocks, &image, &histogram, &mask);
+        assert_eq!(result.width(), 45);
+        assert_eq!(result.height(), 45);
     }
 
     #[test]
-    fn test_equalize_values_in_range() {
-        let mut img = DoubleMatrix::new(10, 10);
-        for y in 0..10 {
-            for x in 0..10 {
-                img.set(x, y, (x + y * 10) as f64);
+    fn test_equalize_uniform_image_stays_bounded() {
+        // Uniform 0.5 image: every pixel in bin 128; equalized value must land
+        // within [-1, 1] regardless of the exact mapping.
+        let (blocks, image, histogram) = build_45();
+        let mask = full_mask(&blocks);
+        let result = equalize(&blocks, &image, &histogram, &mask);
+        for y in 0..45 {
+            for x in 0..45 {
+                let v = result.get(x, y);
+                assert!(
+                    v >= -1.0 && v <= 1.0,
+                    "equalized value out of range at ({x},{y}): {v}"
+                );
             }
         }
-        let _hist = HistogramCube::new(img.width(), img.height(), 256);
-        let equalizer = ImageEqualizer::new(&img, &_hist);
+    }
 
-        for y in 0..10 {
-            for x in 0..10 {
-                let v = equalizer.image().get(x, y);
-                assert!(v >= 0.0 && v <= 255.0, "equalized pixel out of range: {}", v);
-            }
-        }
+    #[test]
+    fn test_equalize_masked_out_block_becomes_minus_one() {
+        let (blocks, image, histogram) = build_45();
+        let mut mask = full_mask(&blocks);
+        mask.set(2, 2, false); // block (2,2) excluded
+        let result = equalize(&blocks, &image, &histogram, &mask);
+        // Block (2,2) covers pixels x=30..44, y=30..44.
+        assert!(
+            result.get(35, 35) == -1.0,
+            "masked-out block should be -1, got {}",
+            result.get(35, 35)
+        );
+        assert!(
+            result.get(5, 5) >= -1.0,
+            "masked-in block should be equalized"
+        );
     }
 }

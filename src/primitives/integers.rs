@@ -37,8 +37,8 @@ mod tests {
 
     #[test]
     fn test_round_up_div() {
-        assert_eq!(Integers::round_up_div(10, 3), 4);  // ceil(10/3) = 4
-        assert_eq!(Integers::round_up_div(9, 3), 3);   // exact
+        assert_eq!(Integers::round_up_div(10, 3), 4); // ceil(10/3) = 4
+        assert_eq!(Integers::round_up_div(9, 3), 3); // exact
         assert_eq!(Integers::round_up_div(1, 10), 1);
         assert_eq!(Integers::round_up_div(10, 10), 1);
         assert_eq!(Integers::round_up_div(11, 10), 2);

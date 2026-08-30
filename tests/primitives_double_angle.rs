@@ -36,9 +36,7 @@ mod tests {
         assert_eq!(result, 0.0);
 
         let result = DoubleAngle::to_orientation(std::f64::consts::PI / 2.0);
-        assert!(
-            (result - std::f64::consts::PI).abs() < 0.01
-        );
+        assert!((result - std::f64::consts::PI).abs() < 0.01);
 
         let result = DoubleAngle::to_orientation(std::f64::consts::PI);
         assert_eq!(result, 0.0);
@@ -50,16 +48,12 @@ mod tests {
         assert_eq!(result, 0.0);
 
         let result = DoubleAngle::add(std::f64::consts::PI, std::f64::consts::PI);
-        assert!(
-            (result - 0.0).abs() < 0.01
-        );
+        assert!((result - 0.0).abs() < 0.01);
     }
 
     #[test]
     fn test_complementary() {
         let result = DoubleAngle::complementary(0.0);
-        assert!(
-            (result - 0.0).abs() < 0.01
-        );
+        assert!((result - 0.0).abs() < 0.01);
     }
 }

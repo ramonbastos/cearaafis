@@ -16,11 +16,7 @@ impl ImageResizer {
     /// The target size is computed from DPI: target = dpi * scale_factor / 500.
     /// When dpi is 0 (unknown), we default to a target of 500x500.
     pub fn new(dpi: u32, original: &IntPoint) -> Self {
-        let target = if dpi > 0 {
-            dpi as usize
-        } else {
-            500
-        };
+        let target = if dpi > 0 { dpi as usize } else { 500 };
 
         let orig_x = original.x() as usize;
         let orig_y = original.y() as usize;

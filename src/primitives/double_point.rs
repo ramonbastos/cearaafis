@@ -1,8 +1,5 @@
 /// DoublePoint: 2D point with double coordinates — mirrors .NET DoublePoint.cs.
-use crate::primitives::{
-    doubles::Doubles,
-    int_point::IntPoint,
-};
+use crate::primitives::{doubles::Doubles, int_point::IntPoint};
 
 pub struct DoublePoint {
     pub x: f64,
@@ -134,12 +131,18 @@ mod tests {
 
     #[test]
     fn test_add() {
-        assert_eq!(DoublePoint::new(1.0, 2.0) + DoublePoint::new(3.0, 4.0), DoublePoint::new(4.0, 6.0));
+        assert_eq!(
+            DoublePoint::new(1.0, 2.0) + DoublePoint::new(3.0, 4.0),
+            DoublePoint::new(4.0, 6.0)
+        );
     }
 
     #[test]
     fn test_sub() {
-        assert_eq!(DoublePoint::new(5.0, 3.0) - DoublePoint::new(2.0, 1.0), DoublePoint::new(3.0, 2.0));
+        assert_eq!(
+            DoublePoint::new(5.0, 3.0) - DoublePoint::new(2.0, 1.0),
+            DoublePoint::new(3.0, 2.0)
+        );
     }
 
     #[test]

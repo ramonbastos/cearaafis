@@ -36,10 +36,7 @@ impl BlockGrid {
     }
 
     pub fn block(&self, at_x: i32, at_y: i32) -> IntRect {
-        IntRect::between(
-            &self.corner(at_x, at_y),
-            &self.corner(at_x + 1, at_y + 1),
-        )
+        IntRect::between(&self.corner(at_x, at_y), &self.corner(at_x + 1, at_y + 1))
     }
 
     pub fn block_at(&self, at: &IntPoint) -> IntRect {

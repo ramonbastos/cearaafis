@@ -125,31 +125,16 @@ mod tests {
 
     #[test]
     fn test_pi_constants() {
-        assert!(
-            (DoubleAngle::PI2 - 2.0 * std::f64::consts::PI).abs() < 1e-10
-        );
-        assert!(
-            (DoubleAngle::INV_PI2 * DoubleAngle::PI2 - 1.0).abs() < 1e-10
-        );
-        assert!(
-            (DoubleAngle::HALF_PI - std::f64::consts::FRAC_PI_2).abs() < 1e-10
-        );
+        assert!((DoubleAngle::PI2 - 2.0 * std::f64::consts::PI).abs() < 1e-10);
+        assert!((DoubleAngle::INV_PI2 * DoubleAngle::PI2 - 1.0).abs() < 1e-10);
+        assert!((DoubleAngle::HALF_PI - std::f64::consts::FRAC_PI_2).abs() < 1e-10);
     }
 
     #[test]
     fn test_atan() {
-        assert!(
-            (DoubleAngle::atan(1.0, 0.0) - 0.0).abs()
-                < 1e-10
-        );
-        assert!(
-            (DoubleAngle::atan(0.0, 1.0) - std::f64::consts::FRAC_PI_2).abs()
-                < 1e-10
-        );
-        assert!(
-            (DoubleAngle::atan(1.0, 1.0) - std::f64::consts::FRAC_PI_4).abs()
-                < 1e-10
-        );
+        assert!((DoubleAngle::atan(1.0, 0.0) - 0.0).abs() < 1e-10);
+        assert!((DoubleAngle::atan(0.0, 1.0) - std::f64::consts::FRAC_PI_2).abs() < 1e-10);
+        assert!((DoubleAngle::atan(1.0, 1.0) - std::f64::consts::FRAC_PI_4).abs() < 1e-10);
     }
 
     #[test]
@@ -186,22 +171,15 @@ mod tests {
 
     #[test]
     fn test_opposite() {
-        assert!(
-            (DoubleAngle::opposite(0.0) - std::f64::consts::PI).abs() < 1e-10
-        );
-        assert!(
-            (DoubleAngle::opposite(std::f64::consts::PI) - 0.0).abs() < 1e-10
-        );
+        assert!((DoubleAngle::opposite(0.0) - std::f64::consts::PI).abs() < 1e-10);
+        assert!((DoubleAngle::opposite(std::f64::consts::PI) - 0.0).abs() < 1e-10);
     }
 
     #[test]
     fn test_distance() {
         assert!(DoubleAngle::distance(0.0, 0.0).abs() < 1e-10);
         assert!(
-            (DoubleAngle::distance(0.0, std::f64::consts::PI)
-                - std::f64::consts::PI)
-                .abs()
-                < 1e-10
+            (DoubleAngle::distance(0.0, std::f64::consts::PI) - std::f64::consts::PI).abs() < 1e-10
         );
     }
 
@@ -221,13 +199,9 @@ mod tests {
 
     #[test]
     fn test_to_orientation() {
+        assert!((DoubleAngle::to_orientation(0.0) - 0.0).abs() < 1e-10);
         assert!(
-            (DoubleAngle::to_orientation(0.0) - 0.0).abs() < 1e-10
-        );
-        assert!(
-            (DoubleAngle::to_orientation(std::f64::consts::PI / 2.0)
-                - std::f64::consts::PI)
-                .abs()
+            (DoubleAngle::to_orientation(std::f64::consts::PI / 2.0) - std::f64::consts::PI).abs()
                 < 1e-10
         );
     }

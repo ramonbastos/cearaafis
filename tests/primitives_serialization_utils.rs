@@ -56,7 +56,9 @@ mod tests {
         struct Outer {
             inner: Inner,
         }
-        let val = Outer { inner: Inner { x: 7 } };
+        let val = Outer {
+            inner: Inner { x: 7 },
+        };
         let bytes = cearaafis::transparency::to_cbor(&val).expect("should serialize");
         assert!(!bytes.is_empty());
     }

@@ -1,8 +1,7 @@
-/// ConsistentSkeleton: skeleton data for transparency logging — mirrors .NET ConsistentSkeleton.cs.
-
-use crate::primitives::int_point::IntPoint;
 use super::consistent_skeleton_ridge::ConsistentSkeletonRidge;
 use crate::features::SkeletonMinutia;
+/// ConsistentSkeleton: skeleton data for transparency logging — mirrors .NET ConsistentSkeleton.cs.
+use crate::primitives::int_point::IntPoint;
 
 pub struct ConsistentSkeleton {
     pub width: i32,
@@ -18,17 +17,12 @@ impl ConsistentSkeleton {
         let height = size.y();
 
         // Collect minutiae positions
-        let minutiae_pts: Vec<IntPoint> = minutiae
-            .iter()
-            .map(|m| m.position.clone())
-            .collect();
+        let minutiae_pts: Vec<IntPoint> = minutiae.iter().map(|m| m.position.clone()).collect();
 
         // Build ridges (just use simple indices for now)
         let ridges_out: Vec<ConsistentSkeletonRidge> = ridges
             .iter()
-            .map(|&ridx| {
-                ConsistentSkeletonRidge::new(ridx, ridx, vec![])
-            })
+            .map(|&ridx| ConsistentSkeletonRidge::new(ridx, ridx, vec![]))
             .collect();
 
         Self {

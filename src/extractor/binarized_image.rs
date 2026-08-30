@@ -1,157 +1,209 @@
-/// BinarizedImage: threshold the image into a binary skeleton image.
-/// Mirrors .NET BinarizedImage.cs.
+/// BinarizedImage: block-gated pixel thresholding against a baseline.
+/// Mirrors .NET BinarizedImage.cs — a pixel is "ridge" (true) when
+/// `input[x,y] - baseline[x,y] > 0`, but ONLY inside masked primary blocks.
+/// input = parallel-smoothed image, baseline = orthogonal-smoothed image.
+/// Cleanup removes islands/holes via voting and eliminates diagonal crosses.
+use crate::extractor::vote_filter;
+use crate::parameters::Parameters;
+use crate::primitives::block_map::BlockMap;
 use crate::primitives::bool_matrix::BooleanMatrix;
 use crate::primitives::double_matrix::DoubleMatrix;
-use crate::primitives::histogram_cube::HistogramCube;
-use crate::parameters::Parameters;
 
-/// Binary image result from thresholding.
-pub struct BinarizedImage {
-    image: BooleanMatrix,
-    /// Mask: pixels where histogram total > 0 (valid pixels)
-    mask: BooleanMatrix,
-}
+/// Binarize: true where input exceeds baseline, restricted to masked blocks.
+pub fn binarize(
+    input: &DoubleMatrix,
+    baseline: &DoubleMatrix,
+    mask: &BooleanMatrix,
+    blocks: &BlockMap,
+) -> BooleanMatrix {
+    let size = input.size();
+    let mut binarized = BooleanMatrix::new(size.x() as usize, size.y() as usize);
 
-impl BinarizedImage {
-    pub fn from_image(image: &DoubleMatrix, histogram: &HistogramCube) -> Self {
-        let w = image.width();
-        let h = image.height();
-
-        // Build binary image
-        let mut binary = BooleanMatrix::new(w, h);
-        // Build mask: pixels where histogram total > 0
-        let mut mask = BooleanMatrix::new(w, h);
-
-        let threshold_percentile = Parameters::RELATIVE_CONTRAST_PERCENTILE;
-
-        let mut ridge_count = 0usize;
-        let mut valley_count = 0usize;
-
-        for y in 0..h {
-            for x in 0..w {
-                let total = histogram.sum(x, y);
-                let val = image.get(x, y);
-
-                // Mask: pixel is valid if histogram total > 0
-                if total > 0 {
-                    mask.set(x, y, true);
-                }
-
-                if total == 0 {
-                    binary.set(x, y, val > 128.0);
+    for block in blocks.primary.blocks.iterate() {
+        if mask.get(block.x() as usize, block.y() as usize) {
+            let rect = blocks.primary.block(block.x(), block.y());
+            for y in rect.top()..rect.bottom() {
+                if y < 0 || y as usize >= input.height() {
                     continue;
                 }
-
-                let threshold_count = (total as f64 * threshold_percentile) as i32;
-                let mut cumulative = 0i32;
-                let mut threshold_bin = 0usize;
-
-                for b in 0..histogram.bins {
-                    cumulative += histogram.get(x, y, b);
-                    if cumulative >= threshold_count {
-                        threshold_bin = b;
-                        break;
+                for x in rect.left()..rect.right() {
+                    if x < 0 || x as usize >= input.width() {
+                        continue;
+                    }
+                    if input.get(x as usize, y as usize) - baseline.get(x as usize, y as usize)
+                        > 0.0
+                    {
+                        binarized.set(x as usize, y as usize, true);
                     }
                 }
+            }
+        }
+    }
 
-                let threshold_val = (threshold_bin as f64 / (histogram.bins as f64 - 1.0)) * 255.0;
-                binary.set(x, y, val < threshold_val);
+    binarized
+}
 
-                if binary.get(x, y) {
-                    ridge_count += 1;
-                } else {
-                    valley_count += 1;
+/// Remove diagonal checkerboard artifacts in-place.
+/// Mirrors .NET BinarizedImage.RemoveCrosses.
+fn remove_crosses(input: &mut BooleanMatrix) {
+    let size = input.size();
+    let mut any = true;
+    while any {
+        any = false;
+        for y in 0..size.y() - 1 {
+            for x in 0..size.x() - 1 {
+                let p00 = input.get(x as usize, y as usize);
+                let p01 = input.get(x as usize, (y + 1) as usize);
+                let p10 = input.get((x + 1) as usize, y as usize);
+                let p11 = input.get((x + 1) as usize, (y + 1) as usize);
+                // .NET condition: main diagonal set and anti-diagonal clear, or vice versa
+                let cross_a = p00 && p11 && !p01 && !p10;
+                let cross_b = p01 && p10 && !p00 && !p11;
+                if cross_a || cross_b {
+                    input.set(x as usize, y as usize, false);
+                    input.set(x as usize, (y + 1) as usize, false);
+                    input.set((x + 1) as usize, y as usize, false);
+                    input.set((x + 1) as usize, (y + 1) as usize, false);
+                    any = true;
                 }
             }
         }
+    }
+}
 
-        // Island cleanup: remove pixels in binary that are NOT in the mask.
-        // Mirrors .NET BinarizedImage.Binarize() island detection:
-        // "pixels that are binary=true but mask=false are islands — remove them"
-        for y in 0..h {
-            for x in 0..w {
-                if binary.get(x, y) && !mask.get(x, y) {
-                    binary.set(x, y, false);
-                }
-            }
+/// Cleanup: remove islands (inverted-image vote) and holes (direct vote),
+/// then eliminate diagonal crosses. Modifies `binary` in place.
+/// Mirrors .NET BinarizedImage.Cleanup.
+pub fn cleanup(binary: &mut BooleanMatrix, mask: &BooleanMatrix) {
+    let size = binary.size();
+
+    let mut inverted = BooleanMatrix::from_clone(binary);
+    inverted.invert();
+    let islands = vote_filter::vote(
+        &inverted,
+        Some(mask),
+        Parameters::BINARIZED_VOTE_RADIUS as i32,
+        Parameters::BINARIZED_VOTE_MAJORITY,
+        Parameters::BINARIZED_VOTE_BORDER_DISTANCE as i32,
+    );
+    let holes = vote_filter::vote(
+        binary,
+        Some(mask),
+        Parameters::BINARIZED_VOTE_RADIUS as i32,
+        Parameters::BINARIZED_VOTE_MAJORITY,
+        Parameters::BINARIZED_VOTE_BORDER_DISTANCE as i32,
+    );
+
+    for y in 0..size.y() as usize {
+        for x in 0..size.x() as usize {
+            let v = binary.get(x, y) && !islands.get(x, y) || holes.get(x, y);
+            binary.set(x, y, v);
         }
-
-        Self { image: binary, mask }
     }
 
-    pub fn image(&self) -> &BooleanMatrix {
-        &self.image
-    }
+    remove_crosses(binary);
+}
 
-    pub fn mask(&self) -> &BooleanMatrix {
-        &self.mask
-    }
-
-    pub fn is_ridge(&self, x: i32, y: i32) -> bool {
-        let w = self.image.width() as i32;
-        let h = self.image.height() as i32;
-        if x < 0 || y < 0 || x >= w || y >= h {
-            return false;
+/// Invert binary image restricted to the mask. Mirrors .NET BinarizedImage.Invert.
+pub fn invert(binary: &BooleanMatrix, mask: &BooleanMatrix) -> BooleanMatrix {
+    let size = binary.size();
+    let mut inverted = BooleanMatrix::new(size.x() as usize, size.y() as usize);
+    for y in 0..size.y() as usize {
+        for x in 0..size.x() as usize {
+            inverted.set(x, y, !binary.get(x, y) && mask.get(x, y));
         }
-        self.image.get(x as usize, y as usize)
     }
+    inverted
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::primitives::int_point::IntPoint;
 
-    #[test]
-    fn test_binarize_uniform() {
-        let mut img = DoubleMatrix::new(10, 10);
-        for y in 0..10 {
-            for x in 0..10 {
-                img.set(x, y, 128.0);
+    fn full_mask(blocks: &BlockMap) -> BooleanMatrix {
+        let mut mask = BooleanMatrix::new(
+            blocks.primary.blocks.x() as usize,
+            blocks.primary.blocks.y() as usize,
+        );
+        for y in 0..mask.height() {
+            for x in 0..mask.width() {
+                mask.set(x, y, true);
             }
         }
-        let hist = HistogramCube::new(10, 10, 256);
-        let bin = BinarizedImage::from_image(&img, &hist);
-        assert!(!bin.is_ridge(5, 5));
+        mask
     }
 
     #[test]
-    fn test_binarize_dimensions() {
-        let img = DoubleMatrix::new(30, 30);
-        let hist = HistogramCube::new(30, 30, 256);
-        let bin = BinarizedImage::from_image(&img, &hist);
-        assert_eq!(bin.image().width(), 30);
-        assert_eq!(bin.image().height(), 30);
+    fn test_binarize_input_above_baseline() {
+        let blocks = BlockMap::new(30, 30, 15);
+        let mut input = DoubleMatrix::new(30, 30);
+        let baseline = DoubleMatrix::new(30, 30);
+        input.set(10, 10, 0.5); // brighter than baseline 0
+        input.set(20, 5, -0.5); // darker than baseline 0
+        let mask = full_mask(&blocks);
+        let binary = binarize(&input, &baseline, &mask, &blocks);
+        assert!(binary.get(10, 10), "input > baseline should be true");
+        assert!(!binary.get(20, 5), "input < baseline should be false");
     }
 
     #[test]
-    fn test_binarize_island_cleanup() {
-        // Create an image with a single bright pixel surrounded by dark pixels
-        let mut img = DoubleMatrix::new(5, 5);
-        img.set(2, 2, 255.0); // center pixel bright
-        for y in 0..5 {
-            for x in 0..5 {
-                if x == 2 && y == 2 { continue; }
-                img.set(x, y, 0.0);
+    fn test_binarize_skips_unmasked_blocks() {
+        let blocks = BlockMap::new(30, 30, 15);
+        let mut input = DoubleMatrix::new(30, 30);
+        let baseline = DoubleMatrix::new(30, 30);
+        input.set(25, 25, 0.9);
+        let mut mask = full_mask(&blocks);
+        mask.set(1, 1, false); // block containing (25,25)
+        let binary = binarize(&input, &baseline, &mask, &blocks);
+        assert!(
+            !binary.get(25, 25),
+            "pixel in unmasked block must not binarize"
+        );
+    }
+
+    #[test]
+    fn test_remove_crosses_clears_checkerboard() {
+        let mut binary = BooleanMatrix::new(4, 4);
+        // 2x2 checkerboard at (0,0)..(1,1): p00=true, p11=true, p01=false, p10=false
+        binary.set(0, 0, true);
+        binary.set(1, 1, true);
+        let mut b = binary;
+        remove_crosses(&mut b);
+        assert!(!b.get(0, 0), "cross should be removed");
+        assert!(!b.get(1, 1), "cross should be removed");
+    }
+
+    #[test]
+    fn test_invert_respects_mask() {
+        let mut binary = BooleanMatrix::new(4, 4);
+        binary.set(1, 1, true);
+        let mut mask = BooleanMatrix::new(4, 4);
+        mask.set(1, 1, true);
+        mask.set(2, 2, true);
+        let inverted = invert(&binary, &mask);
+        assert!(!inverted.get(1, 1), "binary true + mask true → false");
+        assert!(inverted.get(2, 2), "binary false + mask true → true");
+        assert!(!inverted.get(0, 0), "mask false → false");
+    }
+
+    #[test]
+    fn test_cleanup_preserves_dimensions() {
+        let mut binary = BooleanMatrix::new(40, 40);
+        for y in 0..40 {
+            for x in 0..40 {
+                binary.set(x, y, (x + y) % 2 == 0);
             }
         }
-
-        // Build histogram with non-zero total for center pixel
-        let mut hist = HistogramCube::new(5, 5, 256);
-        // Set only the center pixel to have non-zero histogram total
-        // (this makes mask=true only for (2,2))
-        // But in reality the histogram comes from local contrast computation,
-        // so all pixels will have some total. Let's test with realistic scenario.
-
-        // For the island cleanup test: we need pixels where binary=true but mask=false.
-        // This happens when total=0 → mask=false, and val>128 → binary=true.
-        // Since our histogram cube initializes to zeros, ALL pixels have total=0.
-        // So mask=false everywhere, and binary=true wherever val>128.
-        // Island cleanup should remove all those.
-        let bin = BinarizedImage::from_image(&img, &hist);
-        for y in 0..5 {
-            for x in 0..5 {
-                assert!(!bin.is_ridge(x, y), "Island cleanup should remove isolated pixels");
+        let mask = BooleanMatrix::from_point(&IntPoint::new(40, 40));
+        let mut m = mask.clone();
+        for y in 0..40 {
+            for x in 0..40 {
+                m.set(x, y, true);
             }
         }
+        cleanup(&mut binary, &m);
+        assert_eq!(binary.width(), 40);
+        assert_eq!(binary.height(), 40);
     }
 }

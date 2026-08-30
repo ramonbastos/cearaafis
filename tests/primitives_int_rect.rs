@@ -60,7 +60,7 @@ mod tests {
     #[test]
     fn test_int_rect_move_rect() {
         let rect = IntRect::new(0, 0, 10, 10);
-        
+
         let moved = rect.move_rect(&IntPoint::new(5, 5));
         assert_eq!(moved.x, 5);
         assert_eq!(moved.y, 5);

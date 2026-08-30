@@ -18,15 +18,16 @@ impl NeighborEdge {
 
 #[cfg(test)]
 mod tests {
+    use super::super::edge_shape::EdgeShape;
     use super::*;
     use crate::primitives::short_point::ShortPoint;
-    use super::super::edge_shape::EdgeShape;
 
     #[test]
     fn test_new() {
-        let edge = NeighborEdge::new(
-            indexed_edge::IndexedEdge::new(0, EdgeShape::new(vec![ShortPoint::new(1, 2)]))
-        );
+        let edge = NeighborEdge::new(indexed_edge::IndexedEdge::new(
+            0,
+            EdgeShape::new(vec![ShortPoint::new(1, 2)]),
+        ));
         assert!(edge.neighbor.is_none());
     }
 }

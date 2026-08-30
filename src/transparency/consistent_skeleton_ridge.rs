@@ -1,5 +1,4 @@
 /// ConsistentSkeletonRidge: ridge data for transparency logging — mirrors .NET ConsistentSkeletonRidge.cs.
-
 use crate::primitives::int_point::IntPoint;
 
 pub struct ConsistentSkeletonRidge {
@@ -28,7 +27,8 @@ mod tests {
 
     #[test]
     fn test_new_with_points() {
-        let rid = ConsistentSkeletonRidge::new(0, 10, vec![IntPoint::new(1, 2), IntPoint::new(3, 4)]);
+        let rid =
+            ConsistentSkeletonRidge::new(0, 10, vec![IntPoint::new(1, 2), IntPoint::new(3, 4)]);
         assert_eq!(rid.points.len(), 2);
         assert_eq!(rid.points[0].x(), 1);
         assert_eq!(rid.points[1].y(), 4);

@@ -1,9 +1,6 @@
 /// BlockMap: two-layer block grid system — mirrors .NET BlockMap.cs.
 use crate::primitives::{
-    block_grid::BlockGrid,
-    int_point::IntPoint,
-    integers::Integers,
-    int_rect::IntRect,
+    block_grid::BlockGrid, int_point::IntPoint, int_rect::IntRect, integers::Integers,
 };
 
 pub struct BlockMap {
@@ -95,11 +92,11 @@ impl Clone for BlockMap {
     }
 }
 
-
-
 impl PartialEq for BlockMap {
     fn eq(&self, other: &Self) -> bool {
-        self.pixels == other.pixels && self.primary == other.primary && self.secondary == other.secondary
+        self.pixels == other.pixels
+            && self.primary == other.primary
+            && self.secondary == other.secondary
     }
 }
 

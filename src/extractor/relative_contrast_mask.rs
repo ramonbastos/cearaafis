@@ -1,98 +1,50 @@
-/// RelativeContrastMask: identifies pixels with low relative contrast.
-/// Mirrors .NET RelativeContrastMask.cs.
+/// RelativeContrastMask: marks blocks whose contrast is below a fraction of
+/// the average contrast of the best blocks. Mirrors .NET RelativeContrastMask.cs
+/// — block-level: sorts block contrasts descending, averages the top
+/// `sample * percentile` fraction, and flags blocks under avg * MinRelativeContrast.
+use crate::parameters::Parameters;
+use crate::primitives::block_map::BlockMap;
 use crate::primitives::bool_matrix::BooleanMatrix;
 use crate::primitives::double_matrix::DoubleMatrix;
-use crate::primitives::histogram_cube::HistogramCube;
-use crate::parameters::Parameters;
+use crate::primitives::doubles::Doubles;
 
-/// Relative contrast mask for quality filtering.
-pub struct RelativeContrastMask {
-    mask: BooleanMatrix,
-}
+pub fn compute(contrast: &DoubleMatrix, blocks: &BlockMap) -> BooleanMatrix {
+    // Collect all block contrasts and sort descending (like .NET: Sort + Reverse).
+    let mut sorted_contrast: Vec<f64> = Vec::with_capacity(contrast.width() * contrast.height());
+    for y in 0..contrast.height() {
+        for x in 0..contrast.width() {
+            sorted_contrast.push(contrast.get(x, y));
+        }
+    }
+    sorted_contrast.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
 
-impl RelativeContrastMask {
-    pub fn from_image_and_histogram(image: &DoubleMatrix, histogram: &HistogramCube) -> Self {
-        let w = image.width();
-        let h = image.height();
-        let mut mask = BooleanMatrix::new(w, h);
+    let pixels_per_block = (blocks.pixels.area() / blocks.primary.blocks.area()).max(1);
+    // .NET: sampleCount = min(count, RelativeContrastSample / pixelsPerBlock)
+    let sample_count = (sorted_contrast.len())
+        .min(Parameters::RELATIVE_CONTRAST_SAMPLE / pixels_per_block as usize);
+    // .NET: consideredBlocks = max(RoundToInt(sampleCount * percentile), 1)
+    let considered_blocks =
+        (Doubles::round_to_int(sample_count as f64 * Parameters::RELATIVE_CONTRAST_PERCENTILE)
+            as usize)
+            .max(1);
 
-        let sample_count = Parameters::RELATIVE_CONTRAST_SAMPLE;
-        let percentile = Parameters::RELATIVE_CONTRAST_PERCENTILE;
+    let mut average_contrast = 0.0;
+    for item in sorted_contrast.iter().take(considered_blocks) {
+        average_contrast += *item;
+    }
+    average_contrast /= considered_blocks as f64;
 
-        let step = if h > 0 && w > 0 {
-            ((h.max(w) * 10) / sample_count.max(1)).max(1)
-        } else {
-            10
-        };
+    let limit = average_contrast * Parameters::MIN_RELATIVE_CONTRAST;
 
-        for y in (0..h).step_by(step) {
-            for x in (0..w).step_by(step) {
-                let total = histogram.sum(x, y);
-                if total == 0 {
-                    mask.set(x, y, true);
-                    continue;
-                }
-
-                let median_count = (total as f64 * percentile) as i32;
-                let mut cumulative = 0i32;
-                let mut median_bin = 0usize;
-
-                for b in 0..histogram.bins {
-                    cumulative += histogram.get(x, y, b);
-                    if cumulative >= median_count {
-                        median_bin = b;
-                        break;
-                    }
-                }
-
-                let median_val = (median_bin as f64 / (histogram.bins as f64 - 1.0)) * 255.0;
-
-                let local_mean = Self::local_mean(image, x, y, 5);
-                let diff = (median_val - local_mean).abs();
-                let denom = local_mean.max(1.0);
-                let rel_contrast = diff / denom;
-
-                if rel_contrast < Parameters::MIN_RELATIVE_CONTRAST {
-                    mask.set(x, y, true);
-                }
+    let mut result = BooleanMatrix::new(contrast.width(), contrast.height());
+    for y in 0..contrast.height() {
+        for x in 0..contrast.width() {
+            if contrast.get(x, y) < limit {
+                result.set(x, y, true);
             }
         }
-
-        Self { mask }
     }
-
-    fn local_mean(image: &DoubleMatrix, x: usize, y: usize, radius: usize) -> f64 {
-        let w = image.width();
-        let h = image.height();
-        let mut sum = 0.0;
-        let mut count = 0usize;
-
-        for dy in -(radius as i32)..=(radius as i32) {
-            for dx in -(radius as i32)..=(radius as i32) {
-                let nx = x as i32 + dx;
-                let ny = y as i32 + dy;
-                if nx >= 0 && ny >= 0 && nx < w as i32 && ny < h as i32 {
-                    sum += image.get(nx as usize, ny as usize);
-                    count += 1;
-                }
-            }
-        }
-
-        if count == 0 { 0.0 } else { sum / count as f64 }
-    }
-
-    pub fn mask(&self) -> &BooleanMatrix {
-        &self.mask
-    }
-
-    pub fn is_low_relative_contrast(&self, x: i32, y: i32) -> bool {
-        let w = self.mask.width() as i32;
-        let h = self.mask.height() as i32;
-        if x < 0 || y < 0 || x >= w || y >= h {
-            return false;
-        }
-        self.mask.get(x as usize, y as usize)
-    }
+    result
 }
 
 #[cfg(test)]
@@ -100,20 +52,50 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_mask_dimensions() {
-        let img = DoubleMatrix::new(50, 50);
-        let hist = HistogramCube::new(50, 50, 256);
-        let mask = RelativeContrastMask::from_image_and_histogram(&img, &hist);
-        assert_eq!(mask.mask().width(), 50);
-        assert_eq!(mask.mask().height(), 50);
+    fn test_uniform_contrast_no_mask() {
+        // All blocks same contrast → limit == value → nothing below limit.
+        let blocks = BlockMap::new(45, 45, 15);
+        let mut contrast = DoubleMatrix::new(3, 3);
+        for y in 0..3 {
+            for x in 0..3 {
+                contrast.set(x, y, 0.5);
+            }
+        }
+        let mask = compute(&contrast, &blocks);
+        for y in 0..3 {
+            for x in 0..3 {
+                assert!(!mask.get(x, y), "uniform contrast should not mask anything");
+            }
+        }
     }
 
     #[test]
-    fn test_out_of_bounds() {
-        let img = DoubleMatrix::new(10, 10);
-        let hist = HistogramCube::new(10, 10, 256);
-        let mask = RelativeContrastMask::from_image_and_histogram(&img, &hist);
-        assert!(!mask.is_low_relative_contrast(-1, 5));
-        assert!(!mask.is_low_relative_contrast(5, -1));
+    fn test_low_contrast_block_masked() {
+        let blocks = BlockMap::new(45, 45, 15);
+        let mut contrast = DoubleMatrix::new(3, 3);
+        for y in 0..3 {
+            for x in 0..3 {
+                contrast.set(x, y, 0.5);
+            }
+        }
+        contrast.set(2, 2, 0.01);
+        let mask = compute(&contrast, &blocks);
+        assert!(
+            mask.get(2, 2),
+            "weak block should be masked as low relative contrast"
+        );
+        assert!(!mask.get(0, 0));
+    }
+
+    #[test]
+    fn test_dimensions_match_blocks() {
+        let blocks = BlockMap::new(45, 60, 15);
+        let contrast = DoubleMatrix::new(
+            blocks.primary.blocks.x() as usize,
+            blocks.primary.blocks.y() as usize,
+        );
+        let mask = compute(&contrast, &blocks);
+        assert_eq!(mask.width(), blocks.primary.blocks.x() as usize);
+        assert_eq!(mask.height(), blocks.primary.blocks.y() as usize);
     }
 }
